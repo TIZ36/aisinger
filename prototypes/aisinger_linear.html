@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>aisinger</title>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<style>
+  :root {
+    --bg: #08090a;
+    --bg-2: #101113;
+    --bg-3: #16181b;
+    --line: rgba(255,255,255,0.07);
+    --fg: #f7f8f8;
+    --fg-2: #9aa0a8;
+    --fg-3: #62666d;
+    --accent: #5e6ad2;
+    --accent-2: #8b95ff;
+    --green: #4cb782;
+    --mono: "Berkeley Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg);
+    font-family: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; letter-spacing: -0.011em;
+    font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiased; }
+  button, input, textarea, select { font: inherit; color: inherit; background: none; border: 0; outline: none; padding: 0; cursor: pointer; }
+  input, textarea, select { cursor: text; }
+  *:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 6px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  .app { display: grid; grid-template-columns: 200px 1fr; height: 100vh; }
+
+  /* Sidebar */
+  .sb { padding: 24px 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line); }
+  .sb .brand { display: flex; align-items: center; gap: 8px; padding: 4px 12px; margin-bottom: 20px; font-weight: 500; }
+  .sb .brand .mark { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); display: grid; place-items: center; font-size: 11px; color: white; font-weight: 600; }
+  .sb .nav { padding: 8px 12px; display: flex; align-items: center; gap: 10px; color: var(--fg-2); font-size: 14px; border-radius: 6px; cursor: pointer; transition: color .12s, background .12s; }
+  .sb .nav:hover { color: var(--fg); background: var(--bg-3); }
+  .sb .nav.on { color: var(--fg); background: var(--bg-3); }
+  .sb .spacer { flex: 1; }
+  .sb .foot { padding: 6px 12px; color: var(--fg-3); font-size: 12px; font-family: var(--mono); }
+
+  /* Main */
+  .main { overflow-y: auto; }
+  .pad { max-width: 760px; padding: 48px 56px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 32px; }
+
+  /* Synth */
+  .synth { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .row:hover { border-color: rgba(255,255,255,0.12); background: var(--bg-3); }
+  .row .lbl { color: var(--fg-3); font-size: 12px; min-width: 36px; }
+  .row .val { font-weight: 500; flex: 1; }
+  .row .val.placeholder { color: var(--fg-3); font-weight: 400; }
+  .row .chev { color: var(--fg-3); }
+
+  .cta { margin-top: 24px; padding: 14px 18px; background: var(--accent); color: white; border-radius: 10px; font-weight: 500; width: 100%; transition: background .12s; cursor: pointer; }
+  .cta:hover { background: #6d79e0; }
+  .cta:disabled, .cta.disabled { opacity: 0.4; pointer-events: none; }
+
+  .advanced { margin-top: 16px; }
+  .advanced summary { color: var(--fg-3); font-size: 13px; cursor: pointer; padding: 6px 0; user-select: none; list-style: none; }
+  .advanced summary::-webkit-details-marker { display: none; }
+  .advanced summary::before { content: '▸ '; color: var(--fg-3); font-size: 10px; }
+  .advanced[open] summary::before { content: '▾ '; }
+  .advanced summary:hover { color: var(--fg-2); }
+  .advanced .opts { padding: 12px 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; display: flex; flex-direction: column; gap: 16px; }
+  .opt { display: flex; align-items: center; gap: 16px; }
+  .opt label { color: var(--fg-2); font-size: 13px; min-width: 80px; }
+  .opt input[type=range] { flex: 1; accent-color: var(--accent); }
+  .opt .v { color: var(--fg); font-family: var(--mono); font-size: 12px; min-width: 32px; text-align: right; }
+
+  /* Result */
+  .result { margin-top: 32px; padding: 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; }
+  .result .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: var(--fg-2); }
+  .player { display: flex; align-items: center; gap: 12px; }
+  .player .play { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; color: white; cursor: pointer; transition: background .12s; flex-shrink: 0; }
+  .player .play:hover { background: #6d79e0; }
+  .player .wave { flex: 1; height: 28px; display: flex; align-items: center; gap: 2px; }
+  .player .wave i { display: block; width: 2px; background: var(--fg-2); border-radius: 1px; opacity: 0.4; flex: 1; }
+  .player .wave i.played { background: var(--accent-2); opacity: 1; }
+  .player .time { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+
+  /* List pages */
+  .list { display: flex; flex-direction: column; }
+  .item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .item:hover .name { color: var(--accent-2); }
+  .item .av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: white; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+  .item .av.song { background: var(--bg-3); border: 1px solid var(--line); color: var(--fg-2); font-size: 14px; font-weight: 400; }
+  .item .nm { flex: 1; min-width: 0; }
+  .item .name { font-weight: 500; transition: color .12s; }
+  .item .sub { font-size: 12px; color: var(--fg-3); margin-top: 2px; }
+  .item .meta { color: var(--fg-3); font-size: 12px; font-family: var(--mono); }
+  .item .play-mini { color: var(--fg-3); padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+  .item .play-mini:hover { color: var(--fg); background: var(--bg-3); }
+
+  /* Status dot */
+  .dot-running { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); animation: pulse 1.4s infinite; flex-shrink: 0; }
+  .dot-done { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* Training (expand inline in voice library) */
+  .training-item { display: block; padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .training-item .head-row { display: flex; align-items: center; gap: 14px; }
+  .training-item .head-row .nm { flex: 1; }
+  .training-item .head-row .pct { font-family: var(--mono); font-size: 13px; color: var(--accent-2); font-feature-settings: "tnum"; }
+  .training-item .bar { height: 2px; background: var(--bg-3); border-radius: 1px; margin: 12px 0 8px 46px; overflow: hidden; }
+  .training-item .bar > i { display: block; height: 100%; background: var(--accent-2); border-radius: 1px; transition: width .35s cubic-bezier(.4,0,.2,1); }
+  .training-item .stg { padding-left: 46px; font-size: 12px; color: var(--fg-3); font-family: var(--mono); display: flex; justify-content: space-between; }
+  .training-item.expanded .details { display: block; }
+  .training-item .details { display: none; padding: 16px 0 4px 46px; }
+  .training-item .stages { font-size: 12px; color: var(--fg-3); }
+  .training-item .stage { padding: 6px 0; display: flex; gap: 10px; align-items: center; }
+  .training-item .stage .tick { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--bg-3); flex-shrink: 0; position: relative; }
+  .training-item .stage.done .tick { background: var(--green); border-color: var(--green); }
+  .training-item .stage.done .tick::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: white; font-size: 7px; font-weight: 700; }
+  .training-item .stage.active { color: var(--fg); }
+  .training-item .stage.active .tick { border-color: var(--accent-2); border-style: dashed; animation: spin 1.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Empty / top action */
+  .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .new-btn { padding: 8px 14px; background: var(--bg-3); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; color: var(--fg); transition: border-color .12s, background .12s; cursor: pointer; }
+  .new-btn:hover { background: var(--bg-2); border-color: rgba(255,255,255,0.14); }
+
+  /* ============= NEW VOICE wizard ============= */
+  .step { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line); color: var(--fg-3); font-size: 12px; }
+  .step b { width: 18px; height: 18px; border-radius: 50%; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-2); font-size: 10px; font-weight: 600; }
+  .step.on { color: var(--fg); border-color: rgba(255,255,255,0.14); background: var(--bg-3); }
+  .step.on b { background: var(--accent); color: white; }
+  .step.done b { background: var(--green); color: white; }
+  .sep { color: var(--fg-3); align-self: center; font-size: 10px; }
+
+  .nv-section { padding: 24px 0 28px; border-bottom: 1px solid var(--line); }
+  .nv-section:last-of-type { border-bottom: 0; }
+  .nv-h { font-size: 15px; font-weight: 500; margin: 0 0 16px; display: flex; align-items: baseline; gap: 10px; }
+  .nv-h-sub { color: var(--fg-3); font-size: 12px; font-weight: 400; }
+
+  .tier-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .tier-card { padding: 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .tier-card:hover { border-color: rgba(255,255,255,0.14); }
+  .tier-card.sel { border-color: var(--accent); background: rgba(94,106,210,0.06); }
+  .tier-hd { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .tier-hd b { font-weight: 500; }
+  .tier-time { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .tier-desc { color: var(--fg-2); font-size: 12px; margin-bottom: 12px; line-height: 1.55; }
+  .tier-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tier-meta span { font-size: 11px; padding: 2px 7px; background: var(--bg-3); border-radius: 4px; color: var(--fg-3); font-family: var(--mono); }
+  .tier-card.sel .tier-meta span { background: rgba(94,106,210,0.12); color: var(--accent-2); }
+
+  .nv-field { display: flex; flex-direction: column; gap: 8px; }
+  .nv-field label { font-size: 13px; color: var(--fg); font-weight: 500; }
+  .nv-hint { color: var(--fg-3); font-size: 12px; font-weight: 400; margin-left: 6px; }
+  .nv-input { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; width: 100%; transition: border-color .12s, background .12s; }
+  .nv-input:focus { border-color: var(--accent); background: var(--bg-3); }
+
+  .nv-drop { border: 1.5px dashed rgba(255,255,255,0.12); border-radius: 10px; padding: 28px; text-align: center; color: var(--fg-2); font-size: 13px; cursor: pointer; transition: border-color .12s, background .12s; }
+  .nv-drop:hover { border-color: var(--accent); background: rgba(94,106,210,0.04); }
+  .nv-drop-h { font-size: 11px; color: var(--fg-3); margin-top: 6px; font-family: var(--mono); }
+
+  .nv-files { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .nv-file { display: grid; grid-template-columns: 32px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; transition: background .1s; }
+  .nv-file:hover { background: var(--bg-3); }
+  .nv-file-ic { width: 32px; height: 32px; border-radius: 6px; background: rgba(94,106,210,0.12); color: var(--accent-2); display: grid; place-items: center; font-size: 14px; }
+  .nv-file-info { min-width: 0; }
+  .nv-file-name { font-size: 13px; font-weight: 500; }
+  .nv-file-meta { font-size: 11px; color: var(--fg-3); margin-top: 2px; font-family: var(--mono); }
+  .nv-mini-btn { width: 26px; height: 26px; border-radius: 5px; color: var(--fg-3); display: grid; place-items: center; font-size: 11px; transition: background .1s, color .1s; }
+  .nv-mini-btn:hover { background: var(--bg); color: var(--fg); }
+  .nv-mini-btn.nv-x:hover { color: #eb5757; }
+
+  .nv-summary { margin-top: 14px; padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; display: flex; justify-content: space-between; font-size: 12px; color: var(--fg-2); font-family: var(--mono); }
+
+  .nv-prep-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .nv-prep { padding: 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; }
+  .nv-prep-h { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .nv-prep-h b { color: var(--accent-2); font-weight: 500; margin-right: 4px; }
+  .nv-prep-d { font-size: 11px; color: var(--fg-3); margin-bottom: 8px; }
+  .nv-prep-time { font-size: 11px; color: var(--fg-2); font-family: var(--mono); }
+
+  .nv-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+  .nv-toggle-label { font-size: 13px; font-weight: 500; }
+  .nv-toggle-desc { font-size: 11px; color: var(--fg-3); margin-top: 2px; }
+  .nv-switch { width: 34px; height: 20px; background: var(--bg-3); border: 1px solid var(--line); border-radius: 999px; position: relative; cursor: pointer; transition: background .12s, border-color .12s; flex-shrink: 0; }
+  .nv-switch.on { background: var(--accent); border-color: var(--accent); }
+  .nv-knob { position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; background: var(--fg-2); border-radius: 50%; transition: transform .15s, background .12s; }
+  .nv-switch.on .nv-knob { transform: translateX(14px); background: white; }
+
+  .nv-params { display: flex; flex-direction: column; gap: 20px; }
+  .nv-param { padding: 14px 16px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; }
+  .nv-param-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .nv-param-h label { font-size: 13px; font-weight: 500; }
+  .nv-param-v { font-family: var(--mono); font-size: 12px; color: var(--accent-2); }
+  .nv-param input[type=range] { width: 100%; accent-color: var(--accent); }
+  .nv-param-hint { color: var(--fg-3); font-size: 11px; margin-top: 6px; }
+  .nv-chip { padding: 5px 12px; border-radius: 6px; background: var(--bg-3); border: 1px solid var(--line); font-size: 12px; color: var(--fg-2); cursor: pointer; transition: all .12s; }
+  .nv-chip:hover { color: var(--fg); border-color: rgba(255,255,255,0.14); }
+  .nv-chip.on { background: rgba(94,106,210,0.16); border-color: var(--accent); color: var(--accent-2); }
+
+  .nv-stickybar { position: sticky; bottom: 0; left: 200px; right: 0; background: var(--bg-2); border-top: 1px solid rgba(255,255,255,0.12); padding: 14px 56px; display: flex; align-items: center; gap: 14px; box-shadow: 0 -8px 24px rgba(0,0,0,0.3); }
+  .nv-stickybar-info { flex: 1; }
+  .nv-stickybar-title { font-weight: 500; font-size: 13px; }
+  .nv-stickybar-meta { font-size: 11px; color: var(--fg-3); margin-top: 2px; font-family: var(--mono); }
+  .nv-secondary { padding: 9px 18px; border-radius: 8px; color: var(--fg-2); font-size: 13px; transition: background .12s; }
+  .nv-secondary:hover { background: var(--bg-3); color: var(--fg); }
+  .nv-primary { padding: 9px 18px; background: var(--accent); color: white; border-radius: 8px; font-size: 13px; font-weight: 500; transition: background .12s; cursor: pointer; }
+  .nv-primary:hover { background: #6d79e0; }
+
+  /* Modal (picker / new) */
+  .modal-bg { position: fixed; inset: 0; background: rgba(8,9,10,0.5); backdrop-filter: blur(6px); display: none; align-items: flex-start; justify-content: center; padding-top: 16vh; z-index: 50; }
+  .modal-bg.open { display: flex; animation: fadeIn .14s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal { width: 520px; max-width: 92vw; background: var(--bg-2); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.6); }
+  .modal .mh { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .modal .mh .title { font-weight: 500; }
+  .modal .mh .x { color: var(--fg-3); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .modal .mh .x:hover { background: var(--bg-3); color: var(--fg); }
+  .modal .mb { max-height: 400px; overflow-y: auto; padding: 8px; }
+  .modal .opt { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 6px; cursor: pointer; }
+  .modal .opt:hover { background: var(--bg-3); }
+  .modal .opt.sel { background: var(--bg-3); }
+  .modal .opt .av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: white; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+  .modal .opt .av.song { background: var(--bg); border: 1px solid var(--line); color: var(--fg-2); font-weight: 400; }
+  .modal .opt .nm { flex: 1; font-weight: 500; }
+  .modal .opt .sub { font-size: 12px; color: var(--fg-3); }
+  .modal .mf { padding: 10px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; color: var(--fg-3); font-size: 12px; }
+
+  /* New voice modal form */
+  .form { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+  .form .f { display: flex; flex-direction: column; gap: 6px; }
+  .form .f label { font-size: 12px; color: var(--fg-2); }
+  .form .input { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 14px; width: 100%; }
+  .form .input:focus { border-color: var(--accent); }
+  .form .drop { border: 1px dashed rgba(255,255,255,0.14); border-radius: 8px; padding: 24px; text-align: center; color: var(--fg-2); font-size: 13px; cursor: pointer; transition: border-color .12s; }
+  .form .drop:hover { border-color: var(--accent); color: var(--fg); }
+  .form .drop .h { font-size: 11px; color: var(--fg-3); margin-top: 4px; font-family: var(--mono); }
+  .form .acts { display: flex; justify-content: flex-end; gap: 8px; }
+  .form .acts .secondary { padding: 8px 14px; border-radius: 6px; color: var(--fg-2); font-size: 13px; }
+  .form .acts .secondary:hover { background: var(--bg-3); color: var(--fg); }
+  .form .acts .primary { padding: 8px 14px; background: var(--accent); color: white; border-radius: 6px; font-size: 13px; font-weight: 500; }
+  .form .acts .primary:hover { background: #6d79e0; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sb">
+    <div class="brand"><span class="mark">a</span> aisinger</div>
+    <div class="nav on" data-nav="synth">合成</div>
+    <div class="nav" data-nav="voices">音色库</div>
+    <div class="nav" data-nav="tracks">曲目库</div>
+    <div class="nav" data-nav="songs">AI 歌曲库</div>
+    <div class="spacer"></div>
+    <div class="foot">mps · ready</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============= SYNTH ============= -->
+    <section class="view" data-view="synth">
+      <div class="pad">
+        <h1>合成</h1>
+        <div class="synth">
+          <div class="row" onclick="openPicker('voice')">
+            <span class="lbl">音色</span>
+            <span class="val" id="syn_voice_label">选择音色</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="row" id="syn_target_row" onclick="openPicker('track')">
+            <span class="lbl">曲目</span>
+            <span class="val placeholder" id="syn_target_label">选择曲目</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>更多参数</summary>
+          <div class="opts">
+            <div class="opt"><label>变调</label><input type="range" min="-12" max="12" value="0" oninput="this.nextElementSibling.textContent=this.value+'半音'"><span class="v">0半音</span></div>
+            <div class="opt"><label>音色强度</label><input type="range" min="0" max="100" value="75" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="v">75%</span></div>
+          </div>
+        </details>
+
+        <button class="cta" id="cta">开始合成</button>
+
+        <div class="result" id="result" style="display:none">
+          <div class="head"><span id="result_label">narrator × 几分之几</span><span style="color:var(--fg-3);font-family:var(--mono);font-size:11px">刚刚 · 3.2 MB</span></div>
+          <div class="player">
+            <div class="play">▶</div>
+            <div class="wave" id="resultWave"></div>
+            <span class="time">0:00 / 3:42</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============= VOICES ============= -->
+    <section class="view" data-view="voices" style="display:none">
+      <div class="pad">
+        <div class="top-row">
+          <h1 style="margin:0">音色库</h1>
+          <button class="new-btn" onclick="openNewVoice()">＋ 新建音色</button>
+        </div>
+        <div class="list" id="voiceList"></div>
+      </div>
+    </section>
+
+    <!-- ============= NEW VOICE (full page wizard) ============= -->
+    <section class="view" data-view="new" style="display:none">
+      <div class="pad" style="max-width:880px;padding:32px 56px 120px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--fg-3);font-size:13px;cursor:pointer" onclick="nav('voices')">
+          <span style="font-size:12px">‹</span>返回音色库
+        </div>
+        <h1 style="margin-bottom:8px">新建音色</h1>
+        <div style="color:var(--fg-3);font-size:13px;margin-bottom:28px">上传 1–5 段样本 → 自动预处理 → 训练 → 提取音色</div>
+
+        <!-- stepper -->
+        <div style="display:flex;gap:8px;margin-bottom:32px">
+          <div class="step on" data-step="1"><b>1</b> 档位</div>
+          <div class="sep">—</div>
+          <div class="step" data-step="2"><b>2</b> 样本</div>
+          <div class="sep">—</div>
+          <div class="step" data-step="3"><b>3</b> 预处理</div>
+          <div class="sep">—</div>
+          <div class="step" data-step="4"><b>4</b> 训练参数</div>
+        </div>
+
+        <!-- 1: tier -->
+        <section class="nv-section">
+          <h2 class="nv-h">选择档位 <span class="nv-h-sub">不同档位的样本要求与训练时长差别很大</span></h2>
+          <div class="tier-grid">
+            <div class="tier-card" data-tier="simple" onclick="pickTier('simple')">
+              <div class="tier-hd"><b>简易 · 说话</b><span class="tier-time">~30s</span></div>
+              <div class="tier-desc">零样本克隆说话音色，输出由文本驱动。</div>
+              <div class="tier-meta">
+                <span>10s–1min 说话音频</span>
+                <span>Mac MPS</span>
+                <span>F5-TTS</span>
+              </div>
+            </div>
+            <div class="tier-card sel" data-tier="mid" onclick="pickTier('mid')">
+              <div class="tier-hd"><b>中等 · 唱歌</b><span class="tier-time">~25min</span></div>
+              <div class="tier-desc">1–5 首歌训练自有音色，用它翻唱任意歌曲。</div>
+              <div class="tier-meta">
+                <span>1–5 首歌</span>
+                <span>Mac MPS</span>
+                <span>RVC v2</span>
+              </div>
+            </div>
+            <div class="tier-card" data-tier="pro" onclick="pickTier('pro')">
+              <div class="tier-hd"><b>高级 · 高保真</b><span class="tier-time">~10s</span></div>
+              <div class="tier-desc">最高质量歌声 / 说话克隆，需 NVIDIA GPU。</div>
+              <div class="tier-meta">
+                <span>1 min 纯净人声</span>
+                <span>需 GPU</span>
+                <span>GPT-SoVITS</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2: name + samples -->
+        <section class="nv-section">
+          <h2 class="nv-h">命名 · 上传样本</h2>
+          <div class="nv-field">
+            <label>音色名称</label>
+            <input class="nv-input" placeholder="例：我的声音" value="我的声音" />
+          </div>
+          <div class="nv-field" style="margin-top:18px">
+            <label>样本歌曲 <span class="nv-hint">1–5 首 · 带伴奏也行，系统会自动分离人声</span></label>
+            <div class="nv-drop">
+              <div style="font-size:22px;color:var(--accent-2);margin-bottom:6px">↑</div>
+              <div>拖拽歌曲到这里 或 <span style="color:var(--accent-2);text-decoration:underline">点击选择文件</span></div>
+              <div class="nv-drop-h">mp3 / m4a / wav · 单文件 &lt; 30 MB · 建议每首 3–5 分钟</div>
+            </div>
+          </div>
+          <div class="nv-files">
+            <div class="nv-file">
+              <div class="nv-file-ic">♪</div>
+              <div class="nv-file-info">
+                <div class="nv-file-name">几分之几.m4a</div>
+                <div class="nv-file-meta">3:42 · 4.2 MB · 44.1 kHz · 立体声</div>
+              </div>
+              <button class="nv-mini-btn">▶</button>
+              <button class="nv-mini-btn nv-x">✕</button>
+            </div>
+            <div class="nv-file">
+              <div class="nv-file-ic">♪</div>
+              <div class="nv-file-info">
+                <div class="nv-file-name">夜空中最亮的星.m4a</div>
+                <div class="nv-file-meta">4:16 · 5.0 MB · 44.1 kHz · 立体声</div>
+              </div>
+              <button class="nv-mini-btn">▶</button>
+              <button class="nv-mini-btn nv-x">✕</button>
+            </div>
+            <div class="nv-file">
+              <div class="nv-file-ic">♪</div>
+              <div class="nv-file-info">
+                <div class="nv-file-name">夜曲.m4a</div>
+                <div class="nv-file-meta">3:58 · 4.8 MB · 44.1 kHz · 立体声</div>
+              </div>
+              <button class="nv-mini-btn">▶</button>
+              <button class="nv-mini-btn nv-x">✕</button>
+            </div>
+            <div class="nv-file">
+              <div class="nv-file-ic">♪</div>
+              <div class="nv-file-info">
+                <div class="nv-file-name">稻香.m4a</div>
+                <div class="nv-file-meta">3:47 · 4.5 MB · 44.1 kHz · 立体声</div>
+              </div>
+              <button class="nv-mini-btn">▶</button>
+              <button class="nv-mini-btn nv-x">✕</button>
+            </div>
+            <div class="nv-file">
+              <div class="nv-file-ic">♪</div>
+              <div class="nv-file-info">
+                <div class="nv-file-name">fly_me_to_the_moon.m4a</div>
+                <div class="nv-file-meta">3:03 · 3.1 MB · 44.1 kHz · 立体声</div>
+              </div>
+              <button class="nv-mini-btn">▶</button>
+              <button class="nv-mini-btn nv-x">✕</button>
+            </div>
+          </div>
+          <div class="nv-summary">
+            <span><b style="color:var(--fg)">5</b> 个样本 · 总时长 <b style="color:var(--fg)">18:46</b> · 预计训练 28 分钟</span>
+            <span style="color:var(--green)">✓ 符合要求</span>
+          </div>
+        </section>
+
+        <!-- 3: preprocess preview -->
+        <section class="nv-section">
+          <h2 class="nv-h">预处理预览 <span class="nv-h-sub">系统会先分离人声、切片并归一化</span></h2>
+          <div class="nv-prep-grid">
+            <div class="nv-prep">
+              <div class="nv-prep-h"><b>1.</b> 人声分离</div>
+              <div class="nv-prep-d">Demucs htdemucs_ft · 4 模型集成</div>
+              <div class="nv-prep-time">≈ 14 min</div>
+            </div>
+            <div class="nv-prep">
+              <div class="nv-prep-h"><b>2.</b> 静音切片</div>
+              <div class="nv-prep-d">阈值 −40 dB · 最小 5 秒</div>
+              <div class="nv-prep-time">≈ 1 min · 预计 28 段</div>
+            </div>
+            <div class="nv-prep">
+              <div class="nv-prep-h"><b>3.</b> 响度归一化</div>
+              <div class="nv-prep-d">目标 −23 LUFS · 降噪可选</div>
+              <div class="nv-prep-time">≈ 30 s</div>
+            </div>
+          </div>
+
+          <div class="nv-toggle">
+            <div>
+              <div class="nv-toggle-label">应用降噪</div>
+              <div class="nv-toggle-desc">用 noisereduce 处理背景嘶声，对干净录音可关闭</div>
+            </div>
+            <div class="nv-switch on"><div class="nv-knob"></div></div>
+          </div>
+          <div class="nv-toggle">
+            <div>
+              <div class="nv-toggle-label">保留伴奏</div>
+              <div class="nv-toggle-desc">用于后续翻唱时把人声与原伴奏混音回去</div>
+            </div>
+            <div class="nv-switch on"><div class="nv-knob"></div></div>
+          </div>
+        </section>
+
+        <!-- 4: training params -->
+        <section class="nv-section">
+          <h2 class="nv-h">训练参数</h2>
+          <div class="nv-params">
+            <div class="nv-param">
+              <div class="nv-param-h"><label>训练轮数</label><span class="nv-param-v" id="ep_v">20 epochs</span></div>
+              <input type="range" min="5" max="100" step="5" value="20" oninput="document.getElementById('ep_v').textContent=this.value+' epochs'">
+              <div class="nv-param-hint">建议 20–40。轮数越多越像样本，但过多容易过拟合。</div>
+            </div>
+            <div class="nv-param">
+              <div class="nv-param-h"><label>Batch size</label><span class="nv-param-v" id="bs_v">4</span></div>
+              <input type="range" min="1" max="16" step="1" value="4" oninput="document.getElementById('bs_v').textContent=this.value">
+              <div class="nv-param-hint">Mac MPS 建议 4。显存大可调高加快训练。</div>
+            </div>
+            <div class="nv-param">
+              <div class="nv-param-h"><label>音高提取算法</label><span class="nv-param-v">RMVPE</span></div>
+              <div style="display:flex;gap:6px;margin-top:6px">
+                <button class="nv-chip on">RMVPE</button>
+                <button class="nv-chip">Harvest</button>
+                <button class="nv-chip">CREPE</button>
+                <button class="nv-chip">PM</button>
+              </div>
+              <div class="nv-param-hint">RMVPE 速度与质量平衡最佳。</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- sticky action bar -->
+      <div class="nv-stickybar">
+        <div class="nv-stickybar-info">
+          <div class="nv-stickybar-title">中等档 · 我的声音</div>
+          <div class="nv-stickybar-meta">5 个样本 · 20 epochs · 预计 28 分钟</div>
+        </div>
+        <button class="nv-secondary" onclick="nav('voices')">取消</button>
+        <button class="nv-primary" onclick="startTraining()">开始训练 →</button>
+      </div>
+    </section>
+
+    <!-- ============= TRACKS ============= -->
+    <section class="view" data-view="tracks" style="display:none">
+      <div class="pad">
+        <div class="top-row">
+          <h1 style="margin:0">曲目库</h1>
+          <button class="new-btn" onclick="openNewTrack()">＋ 上传曲目</button>
+        </div>
+        <div class="list" id="trackList"></div>
+      </div>
+    </section>
+
+    <!-- ============= SONGS ============= -->
+    <section class="view" data-view="songs" style="display:none">
+      <div class="pad">
+        <div class="top-row">
+          <h1 style="margin:0">AI 歌曲库</h1>
+          <button class="new-btn" onclick="nav('synth')">＋ 去合成</button>
+        </div>
+        <div class="list" id="songList"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Picker / New modals -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+  const VOICES = [
+    { id: 'me', name: '我的声音', av: 'M', color: 'linear-gradient(135deg,#5e6ad2,#8b95ff)', state: 'running', kind: 'song' },
+    { id: 's1', name: '孙燕姿', av: 'S', color: 'linear-gradient(135deg,#4a5278,#6a7298)', state: 'done', kind: 'song' },
+    { id: 't1', name: '陶喆', av: 'T', color: 'linear-gradient(135deg,#3a4060,#5a6080)', state: 'done', kind: 'song' },
+    { id: 'n1', name: 'narrator', av: 'N', color: 'linear-gradient(135deg,#8b95ff,#5e6ad2)', state: 'done', kind: 'text' },
+    { id: 'b1', name: '说书人', av: 'B', color: 'linear-gradient(135deg,#525868,#727888)', state: 'done', kind: 'text' },
+  ];
+  const TRACKS = [
+    { id: 'tk1', name: '几分之几', artist: '王心凌', duration: '3:42' },
+    { id: 'tk2', name: '夜空中最亮的星', artist: '逃跑计划', duration: '4:16' },
+    { id: 'tk3', name: '夜曲', artist: '周杰伦', duration: '3:58' },
+    { id: 'tk4', name: '稻香', artist: '周杰伦', duration: '3:47' },
+    { id: 'tk5', name: '青花瓷', artist: '周杰伦', duration: '3:58' },
+    { id: 'tk6', name: '红豆', artist: '王菲', duration: '4:23' },
+  ];
+  const SONGS = [
+    { voice: 's1', track: 'tk1', when: '12 分钟前' },
+    { voice: 't1', track: 'tk3', when: '今天 10:32' },
+    { voice: 's1', track: 'tk2', when: '昨天 22:08' },
+    { voice: 't1', track: 'tk5', when: '2 天前' },
+    { voice: 's1', track: 'tk6', when: '3 天前' },
+  ];
+
+  const V = id => VOICES.find(v => v.id === id);
+  const T = id => TRACKS.find(t => t.id === id);
+
+  // ============= ROUTING =============
+  function nav(target) {
+    document.querySelectorAll('.view').forEach(v => v.style.display = v.dataset.view === target ? '' : 'none');
+    document.querySelectorAll('.sb .nav').forEach(el => el.classList.toggle('on', el.dataset.nav === target));
+    if (target === 'voices') renderVoices();
+    if (target === 'tracks') renderTracks();
+    if (target === 'songs') renderSongs();
+  }
+  document.querySelectorAll('.sb .nav').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+
+  // ============= SYNTH state =============
+  let synth = { voice: null, target: null };
+  function updateSynth() {
+    const vl = document.getElementById('syn_voice_label');
+    const tl = document.getElementById('syn_target_label');
+    const tr = document.getElementById('syn_target_row');
+    if (synth.voice) {
+      const v = V(synth.voice);
+      vl.textContent = v.name;
+      vl.classList.remove('placeholder');
+      tr.querySelector('.lbl').textContent = v.kind === 'text' ? '文本' : '曲目';
+      if (synth.target == null) {
+        tl.textContent = v.kind === 'text' ? '输入或选择文本' : '选择曲目';
+        tl.classList.add('placeholder');
+      }
+    } else {
+      vl.textContent = '选择音色';
+      vl.classList.add('placeholder');
+      tr.querySelector('.lbl').textContent = '曲目';
+      tl.textContent = '选择曲目';
+      tl.classList.add('placeholder');
+    }
+    if (synth.target) {
+      const v = V(synth.voice);
+      if (v.kind === 'text') {
+        tl.textContent = synth.target.length > 40 ? synth.target.slice(0, 40) + '…' : synth.target;
+      } else {
+        const t = T(synth.target);
+        tl.textContent = t ? t.name : '';
+      }
+      tl.classList.remove('placeholder');
+    }
+    document.getElementById('cta').disabled = !(synth.voice && synth.target);
+    document.getElementById('cta').classList.toggle('disabled', !(synth.voice && synth.target));
+  }
+  document.getElementById('cta').addEventListener('click', () => {
+    if (!synth.voice || !synth.target) return;
+    const v = V(synth.voice);
+    const lbl = v.kind === 'text' ? `${v.name} · 文本合成` : `${v.name} × ${T(synth.target).name}`;
+    document.getElementById('result_label').textContent = lbl;
+    document.getElementById('result').style.display = '';
+    fillWave('resultWave', 70, 0.0);
+  });
+
+  // ============= MODALS =============
+  function showModal(html) {
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('modalBg').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+
+  function openPicker(kind) {
+    if (kind === 'voice') {
+      const list = VOICES.map(v => `
+        <div class="opt${v.id === synth.voice ? ' sel' : ''}" onclick="pickVoice('${v.id}')">
+          <div class="av" style="background:${v.color}">${v.av}</div>
+          <div class="nm">${v.name}</div>
+          ${v.state === 'running' ? '<span style="font-size:12px;color:var(--accent-2);display:flex;align-items:center;gap:6px"><span class="dot-running"></span>训练中</span>' : ''}
+        </div>`).join('');
+      showModal(`
+        <div class="mh"><div class="title">选择音色</div><div class="x" onclick="closeModal()">✕</div></div>
+        <div class="mb">${list}</div>
+        <div class="mf"><span>${VOICES.length} 个音色</span><span onclick="closeModal();openNewVoice()" style="color:var(--accent-2);cursor:pointer">＋ 新建</span></div>
+      `);
+    } else {
+      // target picker (track or text)
+      const v = synth.voice ? V(synth.voice) : null;
+      if (!v) { openPicker('voice'); return; }
+      if (v.kind === 'text') {
+        showModal(`
+          <div class="mh"><div class="title">输入文本</div><div class="x" onclick="closeModal()">✕</div></div>
+          <div class="form" style="padding:18px">
+            <textarea class="input" rows="5" id="txtInput" placeholder="例如：在这片广阔的星空下，每一颗星星都是一个故事…">在这片广阔的星空下，每一颗星星都是一个故事，而我，是其中最闪亮的那一颗。</textarea>
+            <div class="acts"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="pickText(document.getElementById('txtInput').value)">确定</button></div>
+          </div>
+        `);
+      } else {
+        const list = TRACKS.map(t => `
+          <div class="opt${t.id === synth.target ? ' sel' : ''}" onclick="pickTrack('${t.id}')">
+            <div class="av song">♪</div>
+            <div class="nm">${t.name}<div class="sub">${t.artist}</div></div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--fg-3)">${t.duration}</span>
+          </div>`).join('');
+        showModal(`
+          <div class="mh"><div class="title">选择曲目</div><div class="x" onclick="closeModal()">✕</div></div>
+          <div class="mb">${list}</div>
+          <div class="mf"><span>${TRACKS.length} 首曲目</span><span onclick="closeModal();openNewTrack()" style="color:var(--accent-2);cursor:pointer">＋ 上传</span></div>
+        `);
+      }
+    }
+  }
+  function pickVoice(id) {
+    synth.voice = id;
+    if (synth.target != null) {
+      const v = V(id);
+      const isText = v.kind === 'text';
+      if (isText && typeof synth.target !== 'string') synth.target = null;
+      if (!isText && (typeof synth.target === 'string')) synth.target = null;
+    }
+    updateSynth();
+    closeModal();
+  }
+  function pickTrack(id) { synth.target = id; updateSynth(); closeModal(); }
+  function pickText(t) { synth.target = t || ''; updateSynth(); closeModal(); }
+
+  function openNewVoice() { nav('new'); }
+  function pickTier(t) {
+    document.querySelectorAll('.tier-card').forEach(c => c.classList.toggle('sel', c.dataset.tier === t));
+    const map = { simple: '简易档 · narrator', mid: '中等档 · 我的声音', pro: '高级档 · 高保真音色' };
+    const meta = { simple: '1 段说话 · 零样本', mid: '5 个样本 · 20 epochs · 预计 28 分钟', pro: '1 段纯净人声 · 零样本' };
+    document.querySelector('.nv-stickybar-title').textContent = map[t];
+    document.querySelector('.nv-stickybar-meta').textContent = meta[t];
+  }
+  function startTraining() {
+    nav('voices');
+    // 模拟把 VOICES[0] 重置为 running 状态从头开始
+  }
+  function openNewTrack() {
+    showModal(`
+      <div class="mh"><div class="title">上传曲目</div><div class="x" onclick="closeModal()">✕</div></div>
+      <div class="form">
+        <div class="f"><label>音频文件</label><div class="drop">点击或拖拽上传<div class="h">mp3 / m4a / wav</div></div></div>
+        <div class="acts"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="closeModal()">上传</button></div>
+      </div>
+    `);
+  }
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ============= LISTS =============
+  function emptyState(title, body, cta, onCta) {
+    return `<div style="padding:64px 0;text-align:center;color:var(--fg-3)">
+      <div style="color:var(--fg);font-size:15px;font-weight:500;margin-bottom:6px">${title}</div>
+      <div style="font-size:13px;margin-bottom:20px">${body}</div>
+      <button class="new-btn" onclick="${onCta}" style="margin:0 auto">${cta}</button>
+    </div>`;
+  }
+  function renderVoices() {
+    const c = document.getElementById('voiceList');
+    if (!VOICES.length) { c.innerHTML = emptyState('还没有音色', '上传 1–5 段歌唱或说话音频，开始训练', '＋ 新建音色', 'openNewVoice()'); return; }
+    c.innerHTML = VOICES.map(v => v.state === 'running' ? `
+      <div class="training-item" id="ti_${v.id}" onclick="toggleTraining('${v.id}')">
+        <div class="head-row">
+          <div class="av" style="background:${v.color}">${v.av}</div>
+          <div class="nm"><div class="name">${v.name}</div><div class="sub" style="font-size:12px;color:var(--accent-2);display:flex;align-items:center;gap:6px;margin-top:2px"><span class="dot-running"></span>训练中</div></div>
+          <div class="pct"><span id="vti_pct_${v.id}">12</span>%</div>
+        </div>
+        <div class="bar"><i id="vti_bar_${v.id}"></i></div>
+        <div class="stg"><span id="vti_stg_${v.id}">人声分离</span><span id="vti_eta_${v.id}">约 28 分钟</span></div>
+        <div class="details">
+          <div class="stages" id="vti_stages_${v.id}">
+            <div class="stage" data-s="separate"><div class="tick"></div>人声分离</div>
+            <div class="stage" data-s="slice"><div class="tick"></div>切片归一化</div>
+            <div class="stage" data-s="rvc-pp"><div class="tick"></div>RVC 预处理</div>
+            <div class="stage" data-s="rvc-f0"><div class="tick"></div>f0 提取</div>
+            <div class="stage" data-s="rvc-feat"><div class="tick"></div>语义特征</div>
+            <div class="stage" data-s="rvc-train"><div class="tick"></div>训练主网络</div>
+            <div class="stage" data-s="rvc-index"><div class="tick"></div>构建索引</div>
+          </div>
+        </div>
+      </div>` : `
+      <div class="item">
+        <div class="av" style="background:${v.color}">${v.av}</div>
+        <div class="nm"><div class="name">${v.name}</div></div>
+        <div class="meta">就绪</div>
+        <div class="play-mini">使用</div>
+      </div>`).join('');
+  }
+  function toggleTraining(id) {
+    document.getElementById('ti_' + id).classList.toggle('expanded');
+  }
+  function renderTracks() {
+    const c = document.getElementById('trackList');
+    if (!TRACKS.length) { c.innerHTML = emptyState('曲目库为空', '上传你想用 AI 翻唱的歌曲', '＋ 上传曲目', 'openNewTrack()'); return; }
+    c.innerHTML = TRACKS.map(t => `
+      <div class="item">
+        <div class="av song">♪</div>
+        <div class="nm"><div class="name">${t.name}</div><div class="sub">${t.artist}</div></div>
+        <div class="meta">${t.duration}</div>
+        <div class="play-mini">▶</div>
+      </div>`).join('');
+  }
+  function renderSongs() {
+    const c = document.getElementById('songList');
+    if (!SONGS.length) { c.innerHTML = emptyState('还没有作品', '去合成页生成第一首吧', '→ 去合成', 'nav("synth")'); return; }
+    c.innerHTML = SONGS.map(s => {
+      const v = V(s.voice); const t = T(s.track);
+      return `
+      <div class="item">
+        <div class="av" style="background:${v.color}">${v.av}</div>
+        <div class="nm"><div class="name">${t.name}</div><div class="sub">${v.name} · ${s.when}</div></div>
+        <div class="play-mini">▶</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ============= WAVE =============
+  function fillWave(id, count, played) {
+    const c = document.getElementById(id); if (!c) return;
+    c.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const b = document.createElement('i');
+      b.style.height = (4 + Math.random() * 20) + 'px';
+      if (i < count * played) b.classList.add('played');
+      c.appendChild(b);
+    }
+  }
+
+  // ============= TRAINING SIMULATION =============
+  const STAGES = ['separate','slice','rvc-pp','rvc-f0','rvc-feat','rvc-train','rvc-index'];
+  const LBL = { separate:'人声分离', slice:'切片归一化', 'rvc-pp':'RVC 预处理', 'rvc-f0':'f0 提取', 'rvc-feat':'语义特征', 'rvc-train':'训练主网络', 'rvc-index':'构建索引' };
+  const W = { separate:35, slice:5, 'rvc-pp':5, 'rvc-f0':8, 'rvc-feat':7, 'rvc-train':35, 'rvc-index':5 };
+  let cum = {}; let a = 0; STAGES.forEach(s => { cum[s] = a; a += W[s]; });
+
+  function setStage(name, p) {
+    const id = 'me';
+    const overall = cum[name] + W[name] * p / 100;
+    const eta = Math.max(0, (100 - overall) * 1.4);
+    // brief: 用户主动看的位置用 "约 N 分钟"，精确 mm:ss 只在悬浮/详情里
+    const mins = Math.max(1, Math.round(eta / 60));
+    const etaStr = eta < 30 ? '即将完成' : `约 ${mins} 分钟`;
+    const sets = (sel, val, prop) => { const el = document.getElementById(sel); if (el) { if (prop === 'style') el.style.width = val; else el.textContent = val; } };
+    sets(`vti_bar_${id}`, overall + '%', 'style');
+    sets(`vti_pct_${id}`, Math.floor(overall));
+    sets(`vti_stg_${id}`, LBL[name]);
+    sets(`vti_eta_${id}`, etaStr);
+    const stagesC = document.getElementById(`vti_stages_${id}`);
+    if (stagesC) {
+      stagesC.querySelectorAll('.stage').forEach(el => el.classList.remove('active'));
+      const idx = STAGES.indexOf(name);
+      for (let i = 0; i < idx; i++) stagesC.querySelector(`.stage[data-s="${STAGES[i]}"]`)?.classList.add('done');
+      stagesC.querySelector(`.stage[data-s="${name}"]`)?.classList.add('active');
+    }
+  }
+
+  const evs = []; let tt = 200;
+  for (let s = 1; s <= 5; s++) {
+    for (let m = 1; m <= 4; m++) {
+      for (let p = 25; p <= 100; p += 25) {
+        tt += 70;
+        evs.push([tt, () => setStage('separate', ((s - 1) * 4 + (m - 1) + p / 100) / 20 * 100)]);
+      }
+    }
+  }
+  evs.push([tt += 200, () => setStage('slice', 100)]);
+  evs.push([tt += 100, () => setStage('rvc-pp', 100)]);
+  for (let p = 10; p <= 100; p += 15) evs.push([tt += 70, () => setStage('rvc-f0', p)]);
+  for (let p = 10; p <= 100; p += 15) evs.push([tt += 70, () => setStage('rvc-feat', p)]);
+  for (let e = 1; e <= 20; e++) evs.push([tt += 110, () => setStage('rvc-train', e * 5)]);
+  evs.push([tt += 200, () => {
+    setStage('rvc-index', 100);
+    VOICES[0].state = 'done';
+    if (document.querySelector('.view[data-view="voices"]').style.display !== 'none') renderVoices();
+  }]);
+  evs.forEach(([t, fn]) => setTimeout(fn, t * 6));
+
+  // init
+  updateSynth();
+</script>
+</body>
+</html>

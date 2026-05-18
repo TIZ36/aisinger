@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>aisinger</title>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<style>
+  /* ============= LINEAR LIGHT TOKENS ============= */
+  :root {
+    --bg:        #ffffff;
+    --bg-2:      #f7f8f9;
+    --bg-3:      #eff0f2;
+    --bg-sel:    #e8eaef;
+    --bg-hover:  #f4f5f7;
+    --line:      rgba(15, 17, 23, 0.07);
+    --line-strong: rgba(15, 17, 23, 0.12);
+    --fg:        #161819;
+    --fg-2:      #4a4f57;
+    --fg-3:      #8a8f98;
+    --fg-4:      #b5b9c0;
+    --accent:    #5e6ad2;
+    --accent-2:  #4751b8;
+    --accent-soft: rgba(94,106,210,0.08);
+    --accent-tint: rgba(94,106,210,0.04);
+    --green:     #2da670;
+    --green-soft: rgba(45,166,112,0.10);
+    --amber:     #b88420;
+    --mono: "Berkeley Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg-2); color: var(--fg);
+    font-family: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; letter-spacing: -0.011em;
+    font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiased; }
+  button, input, textarea, select { font: inherit; color: inherit; background: none; border: 0; outline: none; padding: 0; cursor: pointer; }
+  input, textarea, select { cursor: text; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  .app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+  /* ============= SIDEBAR ============= */
+  .sb { padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; background: var(--bg-2); border-right: 1px solid var(--line); }
+  .sb .brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 8px; margin-bottom: 16px; }
+  .sb .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; font-size: 12px; color: white; font-weight: 600; }
+  .sb .brand .name { font-weight: 500; font-size: 14px; }
+  .sb .search { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin: 0 0 16px; border-radius: 6px; color: var(--fg-3); font-size: 13px; cursor: pointer; transition: all .12s; }
+  .sb .search:hover { background: var(--bg-hover); color: var(--fg-2); }
+  .sb .search .kbd { margin-left: auto; font-family: var(--mono); font-size: 10px; padding: 1px 5px; border-radius: 3px; background: var(--bg-3); color: var(--fg-3); }
+  .sb .nav-sec { font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 8px 6px; }
+  .sb .nav { padding: 6px 10px; display: flex; align-items: center; gap: 10px; color: var(--fg-2); font-size: 13px; border-radius: 6px; cursor: pointer; transition: all .12s; position: relative; }
+  .sb .nav:hover { color: var(--fg); background: var(--bg-hover); }
+  .sb .nav.on { color: var(--fg); background: var(--bg); box-shadow: 0 0 0 1px var(--line); }
+  .sb .nav .ic { font-size: 13px; color: var(--fg-3); width: 16px; text-align: center; }
+  .sb .nav.on .ic { color: var(--fg); }
+  .sb .nav .label { flex: 1; }
+  .sb .nav .count { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .sb .nav.on .count { color: var(--fg-2); }
+  .sb .spacer { flex: 1; }
+  .sb .device { padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-family: var(--mono); font-size: 11px; color: var(--fg-2); display: flex; align-items: center; gap: 8px; }
+  .sb .device .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); position: relative; }
+  .sb .device .pulse::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: var(--green); opacity: 0.3; animation: pulseDot 1.6s infinite; }
+  @keyframes pulseDot { 0%, 100% { transform: scale(1); opacity: .25; } 50% { transform: scale(1.5); opacity: 0; } }
+
+  /* ============= MAIN ============= */
+  .main { overflow-y: auto; background: var(--bg); }
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 0 32px; height: 52px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .topbar .crumb { color: var(--fg-3); font-size: 13px; }
+  .topbar .crumb b { color: var(--fg); font-weight: 500; }
+  .topbar .crumb .sep { color: var(--fg-4); margin: 0 6px; }
+  .topbar .spacer { flex: 1; }
+  .topbar-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 6px; color: var(--fg-2); font-size: 13px; transition: all .12s; }
+  .topbar-btn:hover { background: var(--bg-hover); color: var(--fg); }
+  .topbar-primary { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; background: var(--accent); color: white; border-radius: 6px; font-size: 13px; font-weight: 500; transition: background .12s; }
+  .topbar-primary:hover { background: var(--accent-2); }
+  .topbar-primary .kbd { background: rgba(255,255,255,0.18); border: 0; color: rgba(255,255,255,0.9); padding: 1px 5px; border-radius: 3px; font-family: var(--mono); font-size: 10px; }
+
+  .page { padding: 28px 32px 64px; max-width: 1180px; margin: 0 auto; }
+
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; gap: 16px; }
+  .page-head .ttl { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .page-head .sub { color: var(--fg-3); font-size: 13px; }
+
+  /* ============= SYNTH (2-col, dense) ============= */
+  .synth-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+
+  .card { border: 1px solid var(--line); background: var(--bg); border-radius: 12px; }
+  .card-h { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .card-h .title { font-size: 13px; font-weight: 500; }
+  .card-h .meta { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .card-body { padding: 16px 18px; }
+
+  /* Selectable row (voice/track) */
+  .sel-row { display: grid; grid-template-columns: 42px 1fr auto; gap: 12px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: all .12s; align-items: center; }
+  .sel-row + .sel-row { margin-top: 10px; }
+  .sel-row:hover { background: var(--bg-hover); border-color: var(--line-strong); }
+  .sel-row.placeholder { border-style: dashed; border-color: var(--line-strong); background: transparent; }
+  .sel-row .ic { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-weight: 600; color: white; font-size: 14px; flex-shrink: 0; }
+  .sel-row.placeholder .ic { background: var(--bg-2); color: var(--fg-3); border: 1px dashed var(--line-strong); font-weight: 400; }
+  .sel-row .meta-block { min-width: 0; }
+  .sel-row .lbl { font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .sel-row .nm { font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sel-row .sub { font-size: 12px; color: var(--fg-3); margin-top: 2px; }
+  .sel-row.placeholder .nm { color: var(--fg-3); font-weight: 400; }
+  .sel-row .chev { color: var(--fg-3); }
+
+  /* Param row */
+  .param-row { display: grid; grid-template-columns: 110px 1fr 60px; align-items: center; gap: 16px; padding: 12px 0; }
+  .param-row + .param-row { border-top: 1px solid var(--line); }
+  .param-row .pk { font-size: 13px; color: var(--fg-2); }
+  .param-row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .param-row .pv { font-family: var(--mono); font-size: 12px; color: var(--fg); text-align: right; }
+
+  /* Big CTA */
+  .cta { padding: 12px 18px; background: var(--accent); color: white; border-radius: 8px; font-weight: 500; transition: background .12s; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+  .cta:hover { background: var(--accent-2); }
+  .cta:disabled, .cta.disabled { opacity: 0.4; pointer-events: none; }
+  .cta .kbd { background: rgba(255,255,255,0.18); padding: 1px 5px; border-radius: 3px; font-family: var(--mono); font-size: 10px; }
+
+  /* Preview panel (right) */
+  .preview { padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .preview-art { aspect-ratio: 1; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+  .preview-art::before { content: ''; position: absolute; inset: -50%; background: radial-gradient(circle at 30% 30%, var(--accent-soft) 0%, transparent 60%); pointer-events: none; }
+  .preview-art .top { position: relative; display: flex; gap: 14px; align-items: flex-start; }
+  .preview-art .top .badge-x { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); color: var(--fg-3); font-size: 11px; font-family: var(--mono); align-self: center; }
+  .preview-art .pa-block { flex: 1; min-width: 0; padding: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; display: flex; align-items: center; gap: 10px; }
+  .preview-art .pa-block .pa-av { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: white; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+  .preview-art .pa-block .pa-av.song { background: var(--bg-2); border: 1px solid var(--line); color: var(--fg-3); font-weight: 400; font-size: 14px; }
+  .preview-art .pa-block .pa-nm { min-width: 0; }
+  .preview-art .pa-block .pa-nm .n { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview-art .pa-block .pa-nm .s { font-size: 11px; color: var(--fg-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preview-art .pa-block .pa-nm .s.empty { color: var(--fg-4); font-style: italic; }
+  .preview-art .bottom { position: relative; }
+  .preview-art .bottom .key { font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .preview-art .bottom .waveform { height: 36px; display: flex; align-items: flex-end; gap: 2px; }
+  .preview-art .bottom .waveform i { display: block; flex: 1; background: var(--accent); border-radius: 1px 1px 0 0; opacity: 0.4; min-height: 2px; }
+  .preview-art .bottom .waveform i.x { background: var(--fg-3); opacity: 0.25; }
+  .preview-art .bottom .stats { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .preview-art .bottom .stats b { color: var(--fg); font-weight: 500; }
+
+  /* Recent outputs */
+  .recent-h { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
+  .recent-h .h { font-size: 12px; font-weight: 500; color: var(--fg-2); }
+  .recent-h .a { font-size: 12px; color: var(--accent); cursor: pointer; }
+  .recent-h .a:hover { color: var(--accent-2); }
+  .recent-card { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; transition: all .12s; cursor: pointer; }
+  .recent-card + .recent-card { margin-top: 6px; }
+  .recent-card:hover { background: var(--bg-hover); border-color: var(--line-strong); }
+  .recent-card .pp { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; color: white; font-size: 10px; }
+  .recent-card .info { min-width: 0; }
+  .recent-card .info .n { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent-card .info .s { font-size: 11px; color: var(--fg-3); margin-top: 1px; }
+  .recent-card .ts { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+
+  /* ============= LIST PAGES (enriched rows) ============= */
+  .list-row { display: grid; grid-template-columns: 44px 1fr 1.4fr 110px 90px; gap: 16px; padding: 14px 16px; align-items: center; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .12s; }
+  .list-row:hover { background: var(--bg-hover); }
+  .list-row .av { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: white; font-weight: 600; font-size: 13px; }
+  .list-row .av.song { background: var(--bg-2); color: var(--fg-2); font-weight: 400; font-size: 15px; border: 1px solid var(--line); }
+  .list-row .name { font-weight: 500; }
+  .list-row .name .nsub { font-size: 12px; color: var(--fg-3); margin-top: 2px; font-weight: 400; }
+  .list-row .wave-mini { height: 22px; display: flex; align-items: center; gap: 1px; }
+  .list-row .wave-mini i { display: block; flex: 1; background: var(--fg-3); border-radius: 1px; opacity: 0.45; }
+  .list-row .status-cell { font-family: var(--mono); font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 6px; }
+  .list-row .status-cell .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .list-row .status-cell.done .dot { background: var(--green); }
+  .list-row .status-cell.running .dot { background: var(--accent); animation: blink 1.4s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .list-row .actions { display: flex; gap: 4px; justify-content: flex-end; opacity: 0; transition: opacity .12s; }
+  .list-row:hover .actions { opacity: 1; }
+  .list-row .actions button { width: 28px; height: 28px; border-radius: 6px; color: var(--fg-3); display: grid; place-items: center; transition: all .12s; }
+  .list-row .actions button:hover { background: var(--bg-3); color: var(--fg); }
+  .list-row .actions button.use { width: auto; padding: 0 10px; font-size: 12px; color: var(--accent); }
+  .list-row .actions button.use:hover { background: var(--accent-soft); }
+  .list-row .meta-c { font-family: var(--mono); font-size: 12px; color: var(--fg-3); text-align: right; }
+
+  /* training row (inline expand) */
+  .training-row { padding: 14px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .12s; }
+  .training-row:hover { background: var(--bg-hover); }
+  .training-row .tr-top { display: grid; grid-template-columns: 44px 1fr auto; gap: 16px; align-items: center; }
+  .training-row .av { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: white; font-weight: 600; font-size: 13px; }
+  .training-row .nm { font-weight: 500; }
+  .training-row .nsub { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent); margin-top: 4px; }
+  .training-row .nsub .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: blink 1.4s infinite; }
+  .training-row .pct { font-family: var(--mono); font-size: 14px; color: var(--accent); font-feature-settings: "tnum"; font-weight: 500; }
+  .training-row .bar { height: 2px; background: var(--bg-3); margin: 12px 0 6px 60px; overflow: hidden; }
+  .training-row .bar i { display: block; height: 100%; background: var(--accent); transition: width .35s cubic-bezier(.4,0,.2,1); }
+  .training-row .meta-r { display: flex; justify-content: space-between; padding-left: 60px; font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .training-row.open .details { display: block; }
+  .training-row .details { display: none; margin: 14px 0 4px 60px; padding: 14px 0 0; border-top: 1px solid var(--line); }
+  .training-row .stages { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+  .training-row .stage { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; padding: 6px 0; font-size: 12px; color: var(--fg-3); }
+  .training-row .stage .tk { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--bg-3); position: relative; }
+  .training-row .stage.done { color: var(--fg); }
+  .training-row .stage.done .tk { background: var(--green); border-color: var(--green); }
+  .training-row .stage.done .tk::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: white; font-size: 7px; font-weight: 700; }
+  .training-row .stage.active { color: var(--fg); }
+  .training-row .stage.active .tk { border-color: var(--accent); border-style: dashed; animation: spin 1.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .training-row .stage .pp { font-family: var(--mono); font-size: 10px; color: var(--fg-3); }
+  .training-row .stage.active .pp { color: var(--accent); }
+  .training-row .stage.done .pp { color: var(--green); }
+
+  /* table header */
+  .list-h { display: grid; grid-template-columns: 44px 1fr 1.4fr 110px 90px; gap: 16px; padding: 8px 16px; font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--line); }
+
+  /* ============= NEW VOICE (rich) ============= */
+  .new-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+  .step { display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--fg-3); font-size: 12px; }
+  .step b { width: 18px; height: 18px; border-radius: 50%; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-2); font-size: 10px; font-weight: 600; }
+  .step.on { color: var(--fg); border-color: var(--line-strong); background: var(--accent-tint); }
+  .step.on b { background: var(--accent); color: white; }
+  .step.done b { background: var(--green); color: white; }
+  .step.done b::before { content: '✓'; }
+  .step.done b > span { display: none; }
+  .sep { color: var(--fg-4); align-self: center; font-size: 10px; }
+
+  .nv-section { padding: 24px 0 24px; border-bottom: 1px solid var(--line); }
+  .nv-section:first-of-type { padding-top: 0; }
+  .nv-section:last-of-type { border-bottom: 0; padding-bottom: 12px; }
+  .nv-h { font-size: 15px; font-weight: 500; margin: 0 0 16px; display: flex; align-items: baseline; gap: 10px; }
+  .nv-h-sub { color: var(--fg-3); font-size: 12px; font-weight: 400; }
+  .tier-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .tier-card { padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: all .12s; }
+  .tier-card:hover { border-color: var(--line-strong); }
+  .tier-card.sel { border-color: var(--accent); background: var(--accent-tint); }
+  .tier-hd { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .tier-hd b { font-weight: 500; }
+  .tier-time { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .tier-desc { color: var(--fg-2); font-size: 12px; margin-bottom: 12px; line-height: 1.55; }
+  .tier-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tier-meta span { font-size: 11px; padding: 2px 7px; background: var(--bg-3); border-radius: 4px; color: var(--fg-3); font-family: var(--mono); }
+  .tier-card.sel .tier-meta span { background: rgba(94,106,210,0.10); color: var(--accent-2); }
+
+  .nv-field { display: flex; flex-direction: column; gap: 8px; }
+  .nv-field label { font-size: 13px; color: var(--fg); font-weight: 500; }
+  .nv-hint { color: var(--fg-3); font-size: 12px; font-weight: 400; margin-left: 6px; }
+  .nv-input { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; width: 100%; transition: border-color .12s; }
+  .nv-input:focus { border-color: var(--accent); }
+  .nv-drop { border: 1.5px dashed var(--line-strong); border-radius: 10px; padding: 28px; text-align: center; color: var(--fg-2); font-size: 13px; cursor: pointer; transition: all .12s; background: var(--bg); }
+  .nv-drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .nv-drop-h { font-size: 11px; color: var(--fg-3); margin-top: 6px; font-family: var(--mono); }
+  .nv-files { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .nv-file { display: grid; grid-template-columns: 32px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; transition: background .1s; }
+  .nv-file:hover { background: var(--bg-hover); }
+  .nv-file-ic { width: 32px; height: 32px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 14px; }
+  .nv-file-info { min-width: 0; }
+  .nv-file-name { font-size: 13px; font-weight: 500; }
+  .nv-file-meta { font-size: 11px; color: var(--fg-3); margin-top: 2px; font-family: var(--mono); }
+  .nv-mini-btn { width: 26px; height: 26px; border-radius: 5px; color: var(--fg-3); display: grid; place-items: center; font-size: 11px; transition: all .1s; }
+  .nv-mini-btn:hover { background: var(--bg-3); color: var(--fg); }
+  .nv-mini-btn.nv-x:hover { color: #d04848; }
+  .nv-summary { margin-top: 14px; padding: 12px 14px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; display: flex; justify-content: space-between; font-size: 12px; color: var(--fg-2); font-family: var(--mono); }
+  .nv-prep-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .nv-prep { padding: 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .nv-prep-h { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .nv-prep-h b { color: var(--accent); font-weight: 500; margin-right: 4px; }
+  .nv-prep-d { font-size: 11px; color: var(--fg-3); margin-bottom: 8px; }
+  .nv-prep-time { font-size: 11px; color: var(--fg-2); font-family: var(--mono); }
+  .nv-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+  .nv-toggle-label { font-size: 13px; font-weight: 500; }
+  .nv-toggle-desc { font-size: 11px; color: var(--fg-3); margin-top: 2px; }
+  .nv-switch { width: 34px; height: 20px; background: var(--bg-3); border: 1px solid var(--line); border-radius: 999px; position: relative; cursor: pointer; transition: all .12s; flex-shrink: 0; }
+  .nv-switch.on { background: var(--accent); border-color: var(--accent); }
+  .nv-knob { position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; background: var(--fg-3); border-radius: 50%; transition: all .15s; }
+  .nv-switch.on .nv-knob { transform: translateX(14px); background: white; }
+  .nv-params { display: flex; flex-direction: column; gap: 12px; }
+  .nv-param { padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .nv-param-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .nv-param-h label { font-size: 13px; font-weight: 500; }
+  .nv-param-v { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .nv-param input[type=range] { width: 100%; accent-color: var(--accent); }
+  .nv-param-hint { color: var(--fg-3); font-size: 11px; margin-top: 6px; }
+  .nv-chip { padding: 5px 12px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--line); font-size: 12px; color: var(--fg-2); cursor: pointer; transition: all .12s; }
+  .nv-chip:hover { color: var(--fg); border-color: var(--line-strong); }
+  .nv-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); }
+
+  .nv-aside { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 14px; }
+  .nv-aside .card { padding: 16px 18px; }
+  .nv-aside .card .ahd { font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+  .nv-aside .kv { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .nv-aside .kv + .kv { border-top: 1px solid var(--line); }
+  .nv-aside .kv .k { color: var(--fg-3); }
+  .nv-aside .kv .v { font-family: var(--mono); color: var(--fg); }
+  .nv-aside .cta-block { display: flex; flex-direction: column; gap: 8px; }
+  .nv-aside .cta-block button { width: 100%; }
+
+  /* ============= MODAL ============= */
+  .modal-bg { position: fixed; inset: 0; background: rgba(15, 17, 23, 0.20); backdrop-filter: blur(6px); display: none; align-items: flex-start; justify-content: center; padding-top: 16vh; z-index: 50; }
+  .modal-bg.open { display: flex; animation: fadeIn .14s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal { width: 540px; max-width: 92vw; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; box-shadow: 0 24px 60px rgba(15,17,23,0.10); }
+  .modal .mh { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .modal .mh .title { font-weight: 500; }
+  .modal .mh .x { color: var(--fg-3); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .modal .mh .x:hover { background: var(--bg-2); color: var(--fg); }
+  .modal .mb { max-height: 420px; overflow-y: auto; padding: 8px; }
+  .modal .mb .opt { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; align-items: center; transition: background .12s; }
+  .modal .mb .opt:hover { background: var(--bg-hover); }
+  .modal .mb .opt.sel { background: var(--accent-soft); }
+  .modal .mb .opt .av { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: white; font-weight: 600; font-size: 13px; }
+  .modal .mb .opt .av.song { background: var(--bg-2); color: var(--fg-2); font-weight: 400; font-size: 15px; border: 1px solid var(--line); }
+  .modal .mb .opt .nm { font-weight: 500; font-size: 13px; }
+  .modal .mb .opt .sub { font-size: 11px; color: var(--fg-3); margin-top: 2px; }
+  .modal .mb .opt .right { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .modal .mf { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; color: var(--fg-3); font-size: 12px; }
+  .modal .mf .add { color: var(--accent); cursor: pointer; }
+  .modal .mf .add:hover { color: var(--accent-2); }
+  .form { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+  .form .f label { font-size: 12px; color: var(--fg-2); display: block; margin-bottom: 6px; }
+  .form .acts { display: flex; justify-content: flex-end; gap: 8px; }
+  .form .acts .secondary { padding: 8px 14px; border-radius: 6px; color: var(--fg-2); font-size: 13px; }
+  .form .acts .secondary:hover { background: var(--bg-2); color: var(--fg); }
+  .form .acts .primary { padding: 8px 14px; background: var(--accent); color: white; border-radius: 6px; font-size: 13px; font-weight: 500; }
+  .form .acts .primary:hover { background: var(--accent-2); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============= SIDEBAR ============= -->
+  <aside class="sb">
+    <div class="brand"><span class="mark">a</span><span class="name">aisinger</span></div>
+    <div class="search">⌕ <span>搜索</span><span class="kbd">⌘K</span></div>
+
+    <div class="nav-sec">Workspace</div>
+    <div class="nav on" data-nav="synth"><span class="ic">♪</span><span class="label">合成</span></div>
+    <div class="nav" data-nav="voices"><span class="ic">◐</span><span class="label">音色库</span><span class="count">6</span></div>
+    <div class="nav" data-nav="tracks"><span class="ic">▤</span><span class="label">曲目库</span><span class="count">12</span></div>
+    <div class="nav" data-nav="songs"><span class="ic">★</span><span class="label">AI 歌曲库</span><span class="count">48</span></div>
+
+    <div class="spacer"></div>
+    <div class="device"><span class="pulse"></span>mps · 16 GB · ready</div>
+  </aside>
+
+  <!-- ============= MAIN ============= -->
+  <main class="main">
+    <!-- topbar (per view) -->
+    <header class="topbar" id="topbar"></header>
+
+    <div class="page" id="page">
+
+    <!-- ============= SYNTH ============= -->
+    <section class="view" data-view="synth">
+      <div class="page-head">
+        <div>
+          <h1 class="ttl">合成</h1>
+          <div class="sub">选音色 + 选曲目 → 用 AI 翻唱。每首约 8 秒。</div>
+        </div>
+      </div>
+
+      <div class="synth-grid">
+        <!-- LEFT: config -->
+        <div>
+          <div class="card">
+            <div class="card-h">
+              <div class="title">Configure</div>
+              <div class="meta">step 1 of 1</div>
+            </div>
+            <div class="card-body">
+              <div class="sel-row placeholder" id="row_voice" onclick="openPicker('voice')">
+                <div class="ic" id="ic_voice">+</div>
+                <div class="meta-block"><div class="lbl">PERFORMER · 音色</div><div class="nm" id="nm_voice">选择音色</div><div class="sub" id="sub_voice" style="display:none"></div></div>
+                <div class="chev">›</div>
+              </div>
+              <div class="sel-row placeholder" id="row_target" onclick="openPicker('target')">
+                <div class="ic" id="ic_target">+</div>
+                <div class="meta-block"><div class="lbl" id="lbl_target">SOURCE · 曲目</div><div class="nm" id="nm_target">选择曲目</div><div class="sub" id="sub_target" style="display:none"></div></div>
+                <div class="chev">›</div>
+              </div>
+
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
+                <div class="param-row">
+                  <div class="pk">变调</div>
+                  <input type="range" min="-12" max="12" value="0" oninput="this.nextElementSibling.textContent=(this.value>=0?'+':'')+this.value+' 半音'">
+                  <div class="pv">+0 半音</div>
+                </div>
+                <div class="param-row">
+                  <div class="pk">音色强度</div>
+                  <input type="range" min="0" max="100" value="75" oninput="this.nextElementSibling.textContent=this.value+'%'">
+                  <div class="pv">75%</div>
+                </div>
+                <div class="param-row">
+                  <div class="pk">f0 算法</div>
+                  <div style="display:flex;gap:6px">
+                    <button class="nv-chip on">RMVPE</button>
+                    <button class="nv-chip">Harvest</button>
+                    <button class="nv-chip">CREPE</button>
+                  </div>
+                  <div class="pv"></div>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
+                <div style="font-size:12px;color:var(--fg-3);font-family:var(--mono)" id="cta_hint">先选音色和曲目</div>
+                <button class="cta" id="cta" disabled>开始合成<span class="kbd">⌘↵</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: preview + recent -->
+        <div class="preview">
+          <div class="preview-art">
+            <div class="top">
+              <div class="pa-block">
+                <div class="pa-av" id="pv_voice_av" style="background:var(--bg-2);border:1px solid var(--line);color:var(--fg-3);font-weight:400">·</div>
+                <div class="pa-nm"><div class="n" id="pv_voice_n">未选</div><div class="s empty" id="pv_voice_s">音色</div></div>
+              </div>
+              <div class="badge-x">×</div>
+              <div class="pa-block">
+                <div class="pa-av song" id="pv_track_av">·</div>
+                <div class="pa-nm"><div class="n" id="pv_track_n">未选</div><div class="s empty" id="pv_track_s">曲目</div></div>
+              </div>
+            </div>
+            <div class="bottom">
+              <div class="key">预览 · 输出波形（估算）</div>
+              <div class="waveform" id="pv_wave"></div>
+              <div class="stats">
+                <span><b>—</b> 时长</span>
+                <span><b>—</b> 体积</span>
+                <span><b>约 8s</b> 生成耗时</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="recent-h"><div class="h">最近输出</div><div class="a" onclick="nav('songs')">查看全部 →</div></div>
+            <div id="synthRecent"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============= VOICES ============= -->
+    <section class="view" data-view="voices" style="display:none">
+      <div class="page-head">
+        <div><h1 class="ttl">音色库</h1><div class="sub">已训音色与训练中的任务</div></div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="list-h">
+          <span></span><span>名称</span><span>状态</span><span>更新</span><span></span>
+        </div>
+        <div id="voiceList"></div>
+      </div>
+    </section>
+
+    <!-- ============= TRACKS ============= -->
+    <section class="view" data-view="tracks" style="display:none">
+      <div class="page-head">
+        <div><h1 class="ttl">曲目库</h1><div class="sub">原始歌曲 · 已自动分离人声 / 伴奏</div></div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="list-h">
+          <span></span><span>名称</span><span>波形</span><span>时长</span><span></span>
+        </div>
+        <div id="trackList"></div>
+      </div>
+    </section>
+
+    <!-- ============= SONGS ============= -->
+    <section class="view" data-view="songs" style="display:none">
+      <div class="page-head">
+        <div><h1 class="ttl">AI 歌曲库</h1><div class="sub">所有用 AI 音色生成的作品</div></div>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="list-h">
+          <span></span><span>作品</span><span>音色 × 曲目</span><span>生成时间</span><span></span>
+        </div>
+        <div id="songList"></div>
+      </div>
+    </section>
+
+    <!-- ============= NEW VOICE ============= -->
+    <section class="view" data-view="new" style="display:none">
+      <div class="page-head">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;color:var(--fg-3);font-size:13px;cursor:pointer;margin-bottom:6px" onclick="nav('voices')"><span style="font-size:11px">‹</span>返回音色库</div>
+          <h1 class="ttl">新建音色</h1>
+          <div class="sub">上传 1–5 段样本 → 自动预处理 → 训练 → 提取音色</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:6px;margin-bottom:24px">
+        <div class="step on"><b>1</b> 档位</div>
+        <div class="sep">—</div>
+        <div class="step"><b>2</b> 样本</div>
+        <div class="sep">—</div>
+        <div class="step"><b>3</b> 预处理</div>
+        <div class="sep">—</div>
+        <div class="step"><b>4</b> 训练参数</div>
+      </div>
+
+      <div class="new-grid">
+        <div class="card" style="padding:0">
+          <div style="padding:24px 28px">
+            <section class="nv-section">
+              <h2 class="nv-h">选择档位 <span class="nv-h-sub">不同档位的样本要求与训练时长差别很大</span></h2>
+              <div class="tier-grid">
+                <div class="tier-card" data-tier="simple" onclick="pickTier('simple')">
+                  <div class="tier-hd"><b>简易 · 说话</b><span class="tier-time">~30s</span></div>
+                  <div class="tier-desc">零样本克隆说话音色，输出由文本驱动。</div>
+                  <div class="tier-meta"><span>10s–1min</span><span>Mac MPS</span><span>F5-TTS</span></div>
+                </div>
+                <div class="tier-card sel" data-tier="mid" onclick="pickTier('mid')">
+                  <div class="tier-hd"><b>中等 · 唱歌</b><span class="tier-time">~25min</span></div>
+                  <div class="tier-desc">1–5 首歌训练自有音色，用它翻唱任意歌曲。</div>
+                  <div class="tier-meta"><span>1–5 首歌</span><span>Mac MPS</span><span>RVC v2</span></div>
+                </div>
+                <div class="tier-card" data-tier="pro" onclick="pickTier('pro')">
+                  <div class="tier-hd"><b>高级 · 高保真</b><span class="tier-time">~10s</span></div>
+                  <div class="tier-desc">最高质量歌声 / 说话克隆，需 NVIDIA GPU。</div>
+                  <div class="tier-meta"><span>1 min 纯净人声</span><span>需 GPU</span><span>GPT-SoVITS</span></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="nv-section">
+              <h2 class="nv-h">命名 · 上传样本</h2>
+              <div class="nv-field">
+                <label>音色名称</label>
+                <input class="nv-input" placeholder="例：我的声音" value="我的声音" />
+              </div>
+              <div class="nv-field" style="margin-top:18px">
+                <label>样本歌曲 <span class="nv-hint">1–5 首 · 带伴奏也行，系统会自动分离人声</span></label>
+                <div class="nv-drop">
+                  <div style="font-size:22px;color:var(--accent);margin-bottom:6px">↑</div>
+                  <div>拖拽歌曲到这里 或 <span style="color:var(--accent);text-decoration:underline">点击选择文件</span></div>
+                  <div class="nv-drop-h">mp3 / m4a / wav · 单文件 &lt; 30 MB · 建议每首 3–5 分钟</div>
+                </div>
+              </div>
+              <div class="nv-files">
+                <div class="nv-file"><div class="nv-file-ic">♪</div><div class="nv-file-info"><div class="nv-file-name">几分之几.m4a</div><div class="nv-file-meta">3:42 · 4.2 MB</div></div><button class="nv-mini-btn">▶</button><button class="nv-mini-btn nv-x">✕</button></div>
+                <div class="nv-file"><div class="nv-file-ic">♪</div><div class="nv-file-info"><div class="nv-file-name">夜空中最亮的星.m4a</div><div class="nv-file-meta">4:16 · 5.0 MB</div></div><button class="nv-mini-btn">▶</button><button class="nv-mini-btn nv-x">✕</button></div>
+                <div class="nv-file"><div class="nv-file-ic">♪</div><div class="nv-file-info"><div class="nv-file-name">夜曲.m4a</div><div class="nv-file-meta">3:58 · 4.8 MB</div></div><button class="nv-mini-btn">▶</button><button class="nv-mini-btn nv-x">✕</button></div>
+                <div class="nv-file"><div class="nv-file-ic">♪</div><div class="nv-file-info"><div class="nv-file-name">稻香.m4a</div><div class="nv-file-meta">3:47 · 4.5 MB</div></div><button class="nv-mini-btn">▶</button><button class="nv-mini-btn nv-x">✕</button></div>
+                <div class="nv-file"><div class="nv-file-ic">♪</div><div class="nv-file-info"><div class="nv-file-name">fly_me_to_the_moon.m4a</div><div class="nv-file-meta">3:03 · 3.1 MB</div></div><button class="nv-mini-btn">▶</button><button class="nv-mini-btn nv-x">✕</button></div>
+              </div>
+              <div class="nv-summary">
+                <span><b style="color:var(--fg)">5</b> 个样本 · 总时长 <b style="color:var(--fg)">18:46</b> · 预计训练 28 分钟</span>
+                <span style="color:var(--green)">✓ 符合要求</span>
+              </div>
+            </section>
+
+            <section class="nv-section">
+              <h2 class="nv-h">预处理预览 <span class="nv-h-sub">系统会先分离人声、切片并归一化</span></h2>
+              <div class="nv-prep-grid">
+                <div class="nv-prep"><div class="nv-prep-h"><b>1.</b> 人声分离</div><div class="nv-prep-d">Demucs htdemucs_ft · 4 模型集成</div><div class="nv-prep-time">≈ 14 min</div></div>
+                <div class="nv-prep"><div class="nv-prep-h"><b>2.</b> 静音切片</div><div class="nv-prep-d">阈值 −40 dB · 最小 5 秒</div><div class="nv-prep-time">≈ 1 min · 预计 28 段</div></div>
+                <div class="nv-prep"><div class="nv-prep-h"><b>3.</b> 响度归一化</div><div class="nv-prep-d">目标 −23 LUFS · 降噪可选</div><div class="nv-prep-time">≈ 30 s</div></div>
+              </div>
+              <div class="nv-toggle">
+                <div><div class="nv-toggle-label">应用降噪</div><div class="nv-toggle-desc">用 noisereduce 处理背景嘶声</div></div>
+                <div class="nv-switch on"><div class="nv-knob"></div></div>
+              </div>
+              <div class="nv-toggle">
+                <div><div class="nv-toggle-label">保留伴奏</div><div class="nv-toggle-desc">用于后续翻唱时回混</div></div>
+                <div class="nv-switch on"><div class="nv-knob"></div></div>
+              </div>
+            </section>
+
+            <section class="nv-section">
+              <h2 class="nv-h">训练参数</h2>
+              <div class="nv-params">
+                <div class="nv-param">
+                  <div class="nv-param-h"><label>训练轮数</label><span class="nv-param-v" id="ep_v">20 epochs</span></div>
+                  <input type="range" min="5" max="100" step="5" value="20" oninput="document.getElementById('ep_v').textContent=this.value+' epochs'">
+                  <div class="nv-param-hint">建议 20–40。轮数越多越像样本，但过多容易过拟合。</div>
+                </div>
+                <div class="nv-param">
+                  <div class="nv-param-h"><label>Batch size</label><span class="nv-param-v" id="bs_v">4</span></div>
+                  <input type="range" min="1" max="16" step="1" value="4" oninput="document.getElementById('bs_v').textContent=this.value">
+                  <div class="nv-param-hint">Mac MPS 建议 4。</div>
+                </div>
+                <div class="nv-param">
+                  <div class="nv-param-h"><label>音高提取算法</label><span class="nv-param-v">RMVPE</span></div>
+                  <div style="display:flex;gap:6px;margin-top:6px">
+                    <button class="nv-chip on">RMVPE</button>
+                    <button class="nv-chip">Harvest</button>
+                    <button class="nv-chip">CREPE</button>
+                    <button class="nv-chip">PM</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <aside class="nv-aside">
+          <div class="card" style="background:var(--bg)">
+            <div style="padding:16px 18px">
+              <div class="ahd">训练摘要</div>
+              <div class="kv"><span class="k">档位</span><span class="v">中等 · RVC v2</span></div>
+              <div class="kv"><span class="k">名称</span><span class="v">我的声音</span></div>
+              <div class="kv"><span class="k">样本</span><span class="v">5 / 5 段</span></div>
+              <div class="kv"><span class="k">总时长</span><span class="v">18:46</span></div>
+              <div class="kv"><span class="k">epochs</span><span class="v">20</span></div>
+              <div class="kv"><span class="k">batch</span><span class="v">4</span></div>
+              <div class="kv"><span class="k">设备</span><span class="v">MPS</span></div>
+              <div class="kv"><span class="k">预计耗时</span><span class="v">约 28 分钟</span></div>
+            </div>
+          </div>
+          <div class="cta-block">
+            <button class="cta" onclick="nav('voices')">开始训练 →</button>
+            <button class="topbar-btn" style="justify-content:center" onclick="nav('voices')">取消</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+  const VOICES = [
+    { id: 'me', name: '我的声音', av: 'M', color: 'linear-gradient(135deg,#5e6ad2,#8b95ff)', state: 'running', kind: 'song', sub: '5 sample · RVC v2' },
+    { id: 's1', name: '孙燕姿', av: 'S', color: 'linear-gradient(135deg,#6b73a8,#8d95c2)', state: 'done', kind: 'song', sub: 'GPT-SoVITS · 3 sample' },
+    { id: 't1', name: '陶喆', av: 'T', color: 'linear-gradient(135deg,#5a6080,#7a80a0)', state: 'done', kind: 'song', sub: 'RVC v2 · 40 epochs' },
+    { id: 'n1', name: 'narrator', av: 'N', color: 'linear-gradient(135deg,#8b95ff,#5e6ad2)', state: 'done', kind: 'text', sub: 'F5-TTS · 零样本' },
+    { id: 'b1', name: '说书人', av: 'B', color: 'linear-gradient(135deg,#727888,#525868)', state: 'done', kind: 'text', sub: 'F5-TTS · ja' },
+    { id: 'g1', name: '古风女声', av: 'G', color: 'linear-gradient(135deg,#a8a070,#b89580)', state: 'done', kind: 'song', sub: 'GPT-SoVITS · 微调' },
+  ];
+  const TRACKS = [
+    { id: 'tk1', name: '几分之几', artist: '王心凌', duration: '3:42' },
+    { id: 'tk2', name: '夜空中最亮的星', artist: '逃跑计划', duration: '4:16' },
+    { id: 'tk3', name: '夜曲', artist: '周杰伦', duration: '3:58' },
+    { id: 'tk4', name: '稻香', artist: '周杰伦', duration: '3:47' },
+    { id: 'tk5', name: '青花瓷', artist: '周杰伦', duration: '3:58' },
+    { id: 'tk6', name: '红豆', artist: '王菲', duration: '4:23' },
+  ];
+  const SONGS = [
+    { voice: 's1', track: 'tk1', when: '12 分钟前', size: '4.1 MB' },
+    { voice: 't1', track: 'tk3', when: '今天 10:32', size: '3.6 MB' },
+    { voice: 's1', track: 'tk2', when: '昨天 22:08', size: '4.8 MB' },
+    { voice: 't1', track: 'tk5', when: '2 天前', size: '4.2 MB' },
+    { voice: 's1', track: 'tk6', when: '3 天前', size: '4.9 MB' },
+  ];
+  const V = id => VOICES.find(v => v.id === id);
+  const T = id => TRACKS.find(t => t.id === id);
+
+  function nav(target) {
+    document.querySelectorAll('.view').forEach(v => v.style.display = v.dataset.view === target ? '' : 'none');
+    document.querySelectorAll('.sb .nav').forEach(el => el.classList.toggle('on', el.dataset.nav === target));
+    renderTopbar(target);
+    if (target === 'voices') renderVoices();
+    if (target === 'tracks') renderTracks();
+    if (target === 'songs') renderSongs();
+    if (target === 'synth') { renderRecent(); fillWaveform('pv_wave', 60, 0.0); updateSynthPreview(); }
+    document.querySelector('.main').scrollTop = 0;
+  }
+  document.querySelectorAll('.sb .nav').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+
+  function renderTopbar(view) {
+    const t = document.getElementById('topbar');
+    const right = `<div class="spacer"></div><button class="topbar-btn">⌘K</button>`;
+    if (view === 'synth') t.innerHTML = `<div class="crumb"><b>合成</b></div>${right}`;
+    else if (view === 'voices') t.innerHTML = `<div class="crumb"><b>音色库</b><span class="sep">·</span><span>${VOICES.length}</span></div>${right}<button class="topbar-primary" onclick="nav('new')">＋ 新建音色</button>`;
+    else if (view === 'tracks') t.innerHTML = `<div class="crumb"><b>曲目库</b><span class="sep">·</span><span>${TRACKS.length}</span></div>${right}<button class="topbar-primary" onclick="openNewTrack()">＋ 上传曲目</button>`;
+    else if (view === 'songs') t.innerHTML = `<div class="crumb"><b>AI 歌曲库</b><span class="sep">·</span><span>${SONGS.length}</span></div>${right}<button class="topbar-primary" onclick="nav('synth')">＋ 去合成</button>`;
+    else if (view === 'new') t.innerHTML = `<div class="crumb"><span style="cursor:pointer" onclick="nav('voices')">音色库</span><span class="sep">/</span><b>新建音色</b></div>${right}`;
+  }
+
+  let synth = { voice: null, target: null };
+  function updateSynthRow() {
+    const vr = document.getElementById('row_voice');
+    const tr = document.getElementById('row_target');
+    if (synth.voice) {
+      const v = V(synth.voice);
+      vr.classList.remove('placeholder');
+      const ic = document.getElementById('ic_voice'); ic.style.background = v.color; ic.style.border = '0'; ic.textContent = v.av;
+      document.getElementById('nm_voice').textContent = v.name;
+      const sb = document.getElementById('sub_voice'); sb.textContent = v.sub; sb.style.display = '';
+    } else {
+      vr.classList.add('placeholder');
+      const ic = document.getElementById('ic_voice'); ic.style.background = ''; ic.style.border = ''; ic.textContent = '+';
+      document.getElementById('nm_voice').textContent = '选择音色';
+      document.getElementById('sub_voice').style.display = 'none';
+    }
+    if (synth.voice && synth.target) {
+      const v = V(synth.voice);
+      tr.classList.remove('placeholder');
+      const ic = document.getElementById('ic_target');
+      ic.style.background = 'var(--bg-2)'; ic.style.border = '1px solid var(--line)'; ic.style.color = 'var(--fg-2)';
+      ic.textContent = '♪';
+      if (v.kind === 'text') {
+        document.getElementById('lbl_target').textContent = 'WORDS · 文本';
+        document.getElementById('nm_target').textContent = synth.target.length > 30 ? synth.target.slice(0, 30) + '…' : synth.target;
+        const sb = document.getElementById('sub_target'); sb.textContent = '自由文本'; sb.style.display = '';
+      } else {
+        const t = T(synth.target);
+        document.getElementById('lbl_target').textContent = 'SOURCE · 曲目';
+        document.getElementById('nm_target').textContent = t.name;
+        const sb = document.getElementById('sub_target'); sb.textContent = `${t.artist} · ${t.duration}`; sb.style.display = '';
+      }
+    } else {
+      tr.classList.add('placeholder');
+      const v = synth.voice ? V(synth.voice) : null;
+      const ic = document.getElementById('ic_target'); ic.style.background = ''; ic.style.border = ''; ic.textContent = '+';
+      document.getElementById('lbl_target').textContent = v && v.kind === 'text' ? 'WORDS · 文本' : 'SOURCE · 曲目';
+      document.getElementById('nm_target').textContent = v && v.kind === 'text' ? '输入或选择文本' : '选择曲目';
+      document.getElementById('sub_target').style.display = 'none';
+    }
+    const ok = synth.voice && synth.target;
+    const cta = document.getElementById('cta');
+    cta.disabled = !ok; cta.classList.toggle('disabled', !ok);
+    document.getElementById('cta_hint').textContent = ok ? '预计 8 秒生成' : '先选音色和曲目';
+  }
+  function updateSynthPreview() {
+    const v = synth.voice ? V(synth.voice) : null;
+    const t = synth.voice && synth.target ? (V(synth.voice).kind === 'song' ? T(synth.target) : null) : null;
+    const va = document.getElementById('pv_voice_av');
+    if (v) { va.style.background = v.color; va.style.border = '0'; va.style.color = 'white'; va.style.fontWeight = '600'; va.textContent = v.av; }
+    else { va.style.background = 'var(--bg-2)'; va.style.border = '1px solid var(--line)'; va.style.color = 'var(--fg-3)'; va.style.fontWeight = '400'; va.textContent = '·'; }
+    const vn = document.getElementById('pv_voice_n'); vn.textContent = v ? v.name : '未选';
+    const vs = document.getElementById('pv_voice_s'); if (v) { vs.textContent = v.sub; vs.classList.remove('empty'); } else { vs.textContent = '音色'; vs.classList.add('empty'); }
+
+    const ta = document.getElementById('pv_track_av');
+    ta.textContent = '♪';
+    const tn = document.getElementById('pv_track_n');
+    const ts = document.getElementById('pv_track_s');
+    if (synth.voice && synth.target) {
+      if (V(synth.voice).kind === 'text') {
+        tn.textContent = synth.target.length > 20 ? synth.target.slice(0, 20) + '…' : synth.target;
+        ts.textContent = '文本输入'; ts.classList.remove('empty');
+      } else if (t) {
+        tn.textContent = t.name;
+        ts.textContent = `${t.artist} · ${t.duration}`;
+        ts.classList.remove('empty');
+      }
+      fillWaveform('pv_wave', 60, 0.3);
+    } else {
+      tn.textContent = '未选';
+      ts.textContent = '曲目'; ts.classList.add('empty');
+      fillWaveform('pv_wave', 60, 0.0);
+    }
+  }
+  function updateSynth() { updateSynthRow(); updateSynthPreview(); }
+
+  document.getElementById('cta').addEventListener('click', () => {
+    if (!synth.voice || !synth.target) return;
+    const v = V(synth.voice);
+    const newSong = { voice: synth.voice, track: v.kind === 'song' ? synth.target : null, text: v.kind === 'text' ? synth.target : null, when: '刚刚', size: (3 + Math.random() * 2).toFixed(1) + ' MB' };
+    SONGS.unshift(newSong);
+    renderRecent();
+    fillWaveform('pv_wave', 60, 0.4);
+  });
+
+  // ========= modal =========
+  function showModal(html) { document.getElementById('modal').innerHTML = html; document.getElementById('modalBg').classList.add('open'); }
+  function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  function openPicker(kind) {
+    if (kind === 'voice') {
+      const list = VOICES.map(v => `
+        <div class="opt${v.id === synth.voice ? ' sel' : ''}" onclick="pickVoice('${v.id}')">
+          <div class="av" style="background:${v.color}">${v.av}</div>
+          <div><div class="nm">${v.name}</div><div class="sub">${v.sub}</div></div>
+          <div class="right">${v.state === 'running' ? '<span style="color:var(--accent)">训练中</span>' : (v.kind === 'text' ? '文本' : '唱歌')}</div>
+        </div>`).join('');
+      showModal(`
+        <div class="mh"><div class="title">选择音色</div><div class="x" onclick="closeModal()">✕</div></div>
+        <div class="mb">${list}</div>
+        <div class="mf"><span>${VOICES.length} 个音色</span><span class="add" onclick="closeModal();nav('new')">＋ 新建音色</span></div>
+      `);
+    } else {
+      if (!synth.voice) { openPicker('voice'); return; }
+      const v = V(synth.voice);
+      if (v.kind === 'text') {
+        showModal(`
+          <div class="mh"><div class="title">输入文本</div><div class="x" onclick="closeModal()">✕</div></div>
+          <div class="form" style="padding:18px">
+            <textarea id="txtInput" class="nv-input" rows="5" style="resize:vertical">在这片广阔的星空下，每一颗星星都是一个故事，而我，是其中最闪亮的那一颗。</textarea>
+            <div class="acts"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="pickText(document.getElementById('txtInput').value)">确定</button></div>
+          </div>
+        `);
+      } else {
+        const list = TRACKS.map(t => `
+          <div class="opt${t.id === synth.target ? ' sel' : ''}" onclick="pickTrack('${t.id}')">
+            <div class="av song">♪</div>
+            <div><div class="nm">${t.name}</div><div class="sub">${t.artist}</div></div>
+            <div class="right">${t.duration}</div>
+          </div>`).join('');
+        showModal(`
+          <div class="mh"><div class="title">选择曲目</div><div class="x" onclick="closeModal()">✕</div></div>
+          <div class="mb">${list}</div>
+          <div class="mf"><span>${TRACKS.length} 首曲目</span><span class="add" onclick="closeModal();openNewTrack()">＋ 上传曲目</span></div>
+        `);
+      }
+    }
+  }
+  function pickVoice(id) {
+    synth.voice = id;
+    const v = V(id);
+    if (synth.target != null) {
+      if (v.kind === 'text' && typeof synth.target !== 'string') synth.target = null;
+      if (v.kind === 'song' && typeof synth.target === 'string') synth.target = null;
+    }
+    updateSynth(); closeModal();
+  }
+  function pickTrack(id) { synth.target = id; updateSynth(); closeModal(); }
+  function pickText(t) { synth.target = t || ''; updateSynth(); closeModal(); }
+  function pickTier(t) {
+    document.querySelectorAll('.tier-card').forEach(c => c.classList.toggle('sel', c.dataset.tier === t));
+  }
+  function openNewTrack() {
+    showModal(`
+      <div class="mh"><div class="title">上传曲目</div><div class="x" onclick="closeModal()">✕</div></div>
+      <div class="form">
+        <div class="f"><label>音频文件</label><div class="nv-drop">拖拽到此处 或 <span style="color:var(--accent)">浏览</span><div class="nv-drop-h">mp3 / m4a / wav</div></div></div>
+        <div class="acts"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="closeModal()">上传</button></div>
+      </div>
+    `);
+  }
+
+  // ========= LISTS =========
+  function fillWaveMini(node, count) {
+    for (let i = 0; i < count; i++) {
+      const b = document.createElement('i');
+      b.style.height = (3 + Math.random() * 18) + 'px';
+      node.appendChild(b);
+    }
+  }
+  function fillWaveform(id, count, played) {
+    const c = document.getElementById(id); if (!c) return;
+    c.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+      const b = document.createElement('i');
+      b.style.height = (4 + Math.random() * 32) + 'px';
+      if (played > 0 && i >= count * played) b.classList.add('x');
+      c.appendChild(b);
+    }
+  }
+
+  function renderVoices() {
+    const c = document.getElementById('voiceList');
+    c.innerHTML = VOICES.map(v => v.state === 'running' ? `
+      <div class="training-row" id="tr_${v.id}" onclick="document.getElementById('tr_${v.id}').classList.toggle('open')">
+        <div class="tr-top">
+          <div class="av" style="background:${v.color}">${v.av}</div>
+          <div>
+            <div class="nm">${v.name}</div>
+            <div class="nsub"><span class="dot"></span>训练中 · <span id="tr_stg_${v.id}">人声分离</span></div>
+          </div>
+          <div class="pct"><span id="tr_pct_${v.id}">12</span>%</div>
+        </div>
+        <div class="bar"><i id="tr_bar_${v.id}"></i></div>
+        <div class="meta-r"><span id="tr_eta_${v.id}">约 28 分钟</span><span>5 样本 · 20 epochs · RVC v2</span></div>
+        <div class="details">
+          <div class="stages" id="tr_stages_${v.id}">
+            <div class="stage" data-s="separate"><div class="tk"></div>人声分离<div class="pp">—</div></div>
+            <div class="stage" data-s="slice"><div class="tk"></div>切片归一化<div class="pp">—</div></div>
+            <div class="stage" data-s="rvc-pp"><div class="tk"></div>RVC 预处理<div class="pp">—</div></div>
+            <div class="stage" data-s="rvc-f0"><div class="tk"></div>f0 提取<div class="pp">—</div></div>
+            <div class="stage" data-s="rvc-feat"><div class="tk"></div>语义特征<div class="pp">—</div></div>
+            <div class="stage" data-s="rvc-train"><div class="tk"></div>训练主网络<div class="pp">—</div></div>
+            <div class="stage" data-s="rvc-index"><div class="tk"></div>构建索引<div class="pp">—</div></div>
+          </div>
+        </div>
+      </div>` : `
+      <div class="list-row" onclick="synth.voice='${v.id}';synth.target=null;updateSynth();nav('synth')">
+        <div class="av" style="background:${v.color}">${v.av}</div>
+        <div class="name">${v.name}<div class="nsub">${v.sub}</div></div>
+        <div class="status-cell done"><span class="dot"></span>就绪</div>
+        <div class="meta-c">${v.id === 'me' ? '刚刚' : ''}</div>
+        <div class="actions">
+          <button class="use">使用 →</button>
+          <button>⋯</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderTracks() {
+    const c = document.getElementById('trackList');
+    c.innerHTML = TRACKS.map(t => `
+      <div class="list-row" style="grid-template-columns: 44px 1fr 1.4fr 110px 90px" onclick="synth.target='${t.id}';if(!synth.voice||V(synth.voice).kind==='text')synth.voice='t1';updateSynth();nav('synth')">
+        <div class="av song">♪</div>
+        <div class="name">${t.name}<div class="nsub">${t.artist}</div></div>
+        <div class="wave-mini" id="wm_${t.id}"></div>
+        <div class="meta-c">${t.duration}</div>
+        <div class="actions">
+          <button>▶</button>
+          <button class="use">翻唱 →</button>
+        </div>
+      </div>`).join('');
+    TRACKS.forEach(t => { const n = document.getElementById('wm_' + t.id); n.innerHTML = ''; fillWaveMini(n, 30); });
+  }
+
+  function renderSongs() {
+    const c = document.getElementById('songList');
+    c.innerHTML = SONGS.map((s, i) => {
+      const v = V(s.voice); const t = s.track ? T(s.track) : null;
+      return `<div class="list-row" style="grid-template-columns: 44px 1fr 1.4fr 110px 90px">
+        <div class="av" style="background:${v.color}">${v.av}</div>
+        <div class="name">${t ? t.name : (s.text || '文本合成')}<div class="nsub">${v.name}${t ? ' × ' + t.artist : ' · TTS'}</div></div>
+        <div class="wave-mini" id="sw_${i}"></div>
+        <div class="meta-c">${s.when}<div style="font-size:10px;opacity:0.7;margin-top:2px">${s.size}</div></div>
+        <div class="actions">
+          <button>▶</button>
+          <button>⋯</button>
+        </div>
+      </div>`;
+    }).join('');
+    SONGS.forEach((s, i) => { const n = document.getElementById('sw_' + i); if (n) { n.innerHTML = ''; fillWaveMini(n, 30); } });
+  }
+
+  function renderRecent() {
+    const c = document.getElementById('synthRecent');
+    if (!c) return;
+    const recent = SONGS.slice(0, 4);
+    c.innerHTML = recent.map(s => {
+      const v = V(s.voice); const t = s.track ? T(s.track) : null;
+      return `<div class="recent-card">
+        <div class="pp" style="background:${v.color}">${v.av}</div>
+        <div class="info"><div class="n">${t ? t.name : (s.text || '文本')}</div><div class="s">${v.name}${t ? ' · ' + t.artist : ''}</div></div>
+        <div class="ts">${s.when}</div>
+      </div>`;
+    }).join('') || `<div style="padding:16px;color:var(--fg-3);font-size:12px;text-align:center">尚无输出</div>`;
+  }
+
+  // ========= TRAINING SIM =========
+  const STAGES = ['separate','slice','rvc-pp','rvc-f0','rvc-feat','rvc-train','rvc-index'];
+  const LBL = { separate:'人声分离', slice:'切片归一化', 'rvc-pp':'RVC 预处理', 'rvc-f0':'f0 提取', 'rvc-feat':'语义特征', 'rvc-train':'训练主网络', 'rvc-index':'构建索引' };
+  const W = { separate:35, slice:5, 'rvc-pp':5, 'rvc-f0':8, 'rvc-feat':7, 'rvc-train':35, 'rvc-index':5 };
+  let cum = {}; { let a = 0; STAGES.forEach(s => { cum[s] = a; a += W[s]; }); }
+
+  function setStage(name, p) {
+    const id = 'me';
+    const overall = cum[name] + W[name] * p / 100;
+    const eta = Math.max(0, (100 - overall) * 1.4);
+    const mins = Math.max(1, Math.round(eta / 60));
+    const etaStr = eta < 30 ? '即将完成' : `约 ${mins} 分钟`;
+    const set = (sel, v, prop) => { const el = document.getElementById(sel); if (el) { if (prop === 'w') el.style.width = v; else el.textContent = v; } };
+    set(`tr_bar_${id}`, overall + '%', 'w');
+    set(`tr_pct_${id}`, Math.floor(overall));
+    set(`tr_stg_${id}`, LBL[name]);
+    set(`tr_eta_${id}`, etaStr);
+    const stagesC = document.getElementById(`tr_stages_${id}`);
+    if (stagesC) {
+      stagesC.querySelectorAll('.stage').forEach(el => el.classList.remove('active'));
+      const idx = STAGES.indexOf(name);
+      for (let i = 0; i < idx; i++) {
+        const el = stagesC.querySelector(`.stage[data-s="${STAGES[i]}"]`);
+        if (el) { el.classList.add('done'); el.querySelector('.pp').textContent = '完成'; }
+      }
+      const el = stagesC.querySelector(`.stage[data-s="${name}"]`);
+      if (el) { el.classList.add('active'); el.querySelector('.pp').textContent = Math.floor(p) + '%'; }
+    }
+  }
+
+  const evs = []; let tt = 200;
+  for (let s = 1; s <= 5; s++) for (let m = 1; m <= 4; m++) for (let p = 25; p <= 100; p += 25) {
+    tt += 70;
+    evs.push([tt, () => setStage('separate', ((s - 1) * 4 + (m - 1) + p / 100) / 20 * 100)]);
+  }
+  evs.push([tt += 200, () => setStage('slice', 100)]);
+  evs.push([tt += 100, () => setStage('rvc-pp', 100)]);
+  for (let p = 10; p <= 100; p += 15) evs.push([tt += 70, () => setStage('rvc-f0', p)]);
+  for (let p = 10; p <= 100; p += 15) evs.push([tt += 70, () => setStage('rvc-feat', p)]);
+  for (let e = 1; e <= 20; e++) evs.push([tt += 110, () => setStage('rvc-train', e * 5)]);
+  evs.push([tt += 200, () => {
+    setStage('rvc-index', 100);
+    VOICES[0].state = 'done'; VOICES[0].sub = 'RVC v2 · 刚训完';
+    if (document.querySelector('.view[data-view="voices"]').style.display !== 'none') renderVoices();
+  }]);
+  evs.forEach(([t, fn]) => setTimeout(fn, t * 6));
+
+  // INIT
+  nav('synth');
+</script>
+</body>
+</html>
