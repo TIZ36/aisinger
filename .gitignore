@@ -1,0 +1,109 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.pem
+*.key
+*.crt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.egg-info/
+.eggs/
+build/
+dist/
+.Python
+.venv/
+.venvs/
+venv/
+ENV/
+.uv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Runtime state
+.aisinger.pid
+logs/
+*.log
+*.pid
+
+# App data / generated artifacts
+data/uploads/**
+data/processed/**
+data/voices/**
+data/tracks/**
+data/songs/**
+!data/uploads/.gitkeep
+!data/processed/.gitkeep
+!data/voices/.gitkeep
+!data/tracks/.gitkeep
+!data/songs/.gitkeep
+
+# Models / weights / indexes / audio outputs
+models/**
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+*.index
+*.faiss
+*.npy
+*.npz
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.aac
+*.mp4
+*.mov
+*.webm
+
+# Vendored third-party repositories and generated RVC assets
+third_party/**
+!third_party/.gitkeep
+
+# Frontend dependencies / builds
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/build/
+frontend/.turbo/
+frontend/.vercel/
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# Package manager caches
+.npm/
+.pnpm-store/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+*.bak
